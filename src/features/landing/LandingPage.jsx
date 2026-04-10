@@ -15,7 +15,11 @@ import {
   Users,
   Buildings,
   Briefcase,
+  Sun,
+  Moon,
+  Desktop,
 } from '@phosphor-icons/react';
+import useThemeStore from '../../store/themeStore';
 
 /* ─── SEO Head Updater ─────────────────────────────────────── */
 const useSEO = ({ title, description }) => {
@@ -114,6 +118,51 @@ const STATS = [
   { value: '99.9%', label: 'Uptime Sistem' },
 ];
 
+/* ─── Theme Toggle Component ───────────────────────────────── */
+const ThemeToggle = () => {
+  const { theme, setTheme } = useThemeStore();
+  return (
+    <div className="hidden md:flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl items-center gap-1 border border-gray-200 dark:border-gray-700 shadow-inner">
+      <button
+        type="button"
+        onClick={() => setTheme('light')}
+        className={`p-1.5 rounded-lg flex items-center justify-center transition-all ${
+          theme === 'light'
+            ? 'bg-white text-primary shadow-sm dark:bg-gray-700'
+            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+        }`}
+        title="Light Mode"
+      >
+        <Sun size={16} weight={theme === 'light' ? 'fill' : 'bold'} />
+      </button>
+      <button
+        type="button"
+        onClick={() => setTheme('system')}
+        className={`p-1.5 rounded-lg flex items-center justify-center transition-all ${
+          theme === 'system'
+            ? 'bg-white text-primary shadow-sm dark:bg-gray-700'
+            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+        }`}
+        title="System Preference"
+      >
+        <Desktop size={16} weight={theme === 'system' ? 'fill' : 'bold'} />
+      </button>
+      <button
+        type="button"
+        onClick={() => setTheme('dark')}
+        className={`p-1.5 rounded-lg flex items-center justify-center transition-all ${
+          theme === 'dark'
+            ? 'bg-white text-primary shadow-sm dark:bg-gray-700'
+            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+        }`}
+        title="Dark Mode"
+      >
+        <Moon size={16} weight={theme === 'dark' ? 'fill' : 'bold'} />
+      </button>
+    </div>
+  );
+};
+
 /* ─── Main Component ───────────────────────────────────────── */
 const LandingPage = () => {
   useSEO({
@@ -138,19 +187,21 @@ const LandingPage = () => {
         {/* Navigation Links for Desktop */}
         <div className="hidden md:flex items-center gap-8">
           <a href="#beranda" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">Beranda</a>
-          <a href="#solusi" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">Solusi Enterprise</a>
+          <a href="#solusi" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">Solusi</a>
           <a href="#cara-kerja" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">Cara Kerja</a>
-          <a href="#use-cases" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">Studi Kasus</a>
         </div>
 
-        <Link
-          to="/login"
-          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-semibold rounded-xl
-                     hover:bg-primary-hover active:scale-95 transition-all duration-200 text-sm shadow-sm"
-        >
-          Masuk / Login
-          <ArrowRight size={16} weight="bold" />
-        </Link>
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <Link
+            to="/login"
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-semibold rounded-xl
+                       hover:bg-primary-hover active:scale-95 transition-all duration-200 text-sm shadow-sm"
+          >
+            Akses Platform
+            <ArrowRight size={16} weight="bold" />
+          </Link>
+        </div>
       </nav>
 
       {/* ── Hero Section ────────────────────────────────────── */}
