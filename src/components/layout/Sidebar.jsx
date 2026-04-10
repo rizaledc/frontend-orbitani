@@ -1,20 +1,22 @@
-import { NavLink } from 'react-router-dom';
-import { 
-  MapTrifold, 
-  ChatCircleDots, 
-  Leaf, 
-  ChartBar, 
-  FileCsv, 
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  MapTrifold,
+  ChatCircleDots,
+  Leaf,
+  ChartBar,
+  FileCsv,
   Users,
-  Headset
+  Headset,
+  Buildings,
+  Cpu,
 } from '@phosphor-icons/react';
 import useAuthStore from '../../store/authStore';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user } = useAuthStore();
+  const location = useLocation();
 
-  // 1. Ambil role dari JWT orbitani_token di localStorage sebagai fallback
-  //    atau langsung dari authStore jika tersedia.
+  /* ──── Role resolution with JWT fallback ──── */
   const getRole = () => {
     if (user?.role) return user.role;
     try {
@@ -29,105 +31,200 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const role = getRole();
 
-  // 2. Definisi Menu & Kondisi Akses (RBAC)
-  const menuItems = [
-    { 
-      path: '/dashboard', 
-      label: 'Eksplorasi Lahan', 
-      icon: MapTrifold, 
-      show: true // Semua user bisa akses
+  /* ──── Menu items with RBAC ──── */
+  const menuSections = [
+    {
+      title: 'Utama',
+      items: [
+        {
+          path: '/dashboard',
+          label: 'Eksplorasi Lahan',
+          icon: MapTrifold,
+          desc: 'Peta & data satelit',
+          show: true, // All roles
+        },
+        {
+          path: '/chat',
+          label: 'Pakar AI',
+          icon: ChatCircleDots,
+          desc: 'Konsultasi agronomi',
+          show: true, // All roles
+        },
+        {
+          path: '/support',
+          label: 'Live Chat',
+          icon: Headset,
+          desc: 'Chat sesama pengguna',
+          show: true, // All roles (Specifically requested for user)
+        },
+      ],
     },
-    { 
-      path: '/chat', 
-      label: 'Pakar AI', 
-      icon: ChatCircleDots, 
-      show: true // Semua user bisa akses
+    {
+      title: 'Analisis',
+      items: [
+        {
+          path: '/analytics',
+          label: 'Laporan Analitik',
+          icon: ChartBar,
+          desc: 'Grafik & tren',
+          show: role === 'admin' || role === 'superadmin',
+        },
+        {
+          path: '/history',
+          label: 'Riwayat Data',
+          icon: FileCsv,
+          desc: 'Laporan historis',
+          show: role === 'admin' || role === 'superadmin',
+        },
+      ],
     },
-    { 
-      path: '/support', 
-      label: 'Pusat Bantuan', 
-      icon: Headset, 
-      show: true // Semua user bisa chat manusia
-    },
-    { 
-      path: '/analytics', 
-      label: 'Laporan Analitik', 
-      icon: ChartBar, 
-      show: role === 'admin' || role === 'superadmin'
-    },
-    { 
-      path: '/history', 
-      label: 'Laporan Historis', 
-      icon: FileCsv, 
-      show: role === 'admin' || role === 'superadmin'
-    },
-    { 
-      path: '/users', 
-      label: 'Manajemen Pengguna', 
-      icon: Users, 
-      show: role === 'superadmin'
+    {
+      title: 'Admin',
+      items: [
+        {
+          path: '/users',
+          label: 'Kelola Pengguna',
+          icon: Users,
+          desc: 'Manajemen akun staff',
+          show: role === 'admin' || role === 'superadmin',
+        },
+        {
+          path: '/admin/organizations',
+          label: 'Daftar Organisasi',
+          icon: Buildings,
+          desc: 'Manajemen tenant',
+          show: role === 'superadmin', // Superadmin ONLY
+        },
+        {
+          path: '/admin/mlops',
+          label: 'Dashboard MLOps',
+          icon: Cpu,
+          desc: 'Feedback & Retrain',
+          show: role === 'superadmin', // Superadmin ONLY
+        },
+      ],
     },
   ];
 
   return (
     <>
-      {/* 3. Overlay Mobile dengan Backdrop Blur */}
+      {/* ──── Mobile overlay ──── */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden transition-opacity"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar Container */}
+      {/* ──── Sidebar container ──── */}
       <aside
+        id="main-sidebar"
         className={`
-          fixed top-16 left-0 bottom-0 z-40 w-64 bg-primary dark:bg-gray-800
-          transform transition-transform duration-300 ease-in-out
+          fixed top-[72px] left-0 bottom-0 z-40 w-[260px]
+          bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
+          transform transition-transform duration-300 ease-out
           lg:translate-x-0 lg:static lg:z-auto
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          flex flex-col shadow-xl border-r border-white/5 dark:border-gray-700
+          ${isOpen ? 'translate-x-0 shadow-sm' : '-translate-x-full'}
+          flex flex-col transition-colors duration-300
         `}
       >
-        {/* Brand Stripe */}
-        <div className="px-5 py-5 border-b border-white/10 dark:border-gray-700">
+        {/* ──── Brand stripe ──── */}
+        <div className="px-5 pt-5 pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-accent/20 rounded-lg flex items-center justify-center">
-              <Leaf size={16} className="text-accent" weight="fill" />
+            <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
+              <Leaf size={16} className="text-primary" weight="fill" />
             </div>
-            <p className="text-white/60 text-xs font-medium uppercase tracking-widest">
-              Menu Utama
-            </p>
+            <div>
+              <p className="text-[11px] font-semibold text-primary uppercase tracking-widest">
+                Menu Navigasi
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Navigation Links (RBAC Filtered) */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 custom-scrollbar">
-          {menuItems
-            .filter((item) => item.show)
-            .map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
-                  ${
-                    isActive
-                      ? 'bg-white/15 text-white shadow-md'
-                      : 'text-white/60 hover:bg-white/10 hover:text-white'
-                  }`
-                }
-              >
-                <item.icon size={20} className="flex-shrink-0" weight="duotone" />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
+        {/* ──── Navigation sections ──── */}
+        <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-5 custom-scrollbar">
+          {menuSections.map((section) => {
+            const visibleItems = section.items.filter((item) => item.show);
+            if (visibleItems.length === 0) return null;
+
+            return (
+              <div key={section.title}>
+                {/* Section label */}
+                <p className="px-3 mb-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em]">
+                  {section.title}
+                </p>
+
+                {/* Menu links */}
+                <div className="space-y-1">
+                  {visibleItems.map((item) => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                        transition-all duration-200 relative
+                        ${
+                          isActive
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <div
+                            className={`
+                              w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0
+                              transition-colors duration-200
+                              ${
+                                isActive
+                                  ? 'bg-white/20'
+                                  : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-primary-50 dark:group-hover:bg-gray-700'
+                              }
+                            `}
+                          >
+                            <item.icon
+                              size={18}
+                              weight={isActive ? 'fill' : 'duotone'}
+                              className={isActive ? 'text-white' : 'text-primary'}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="block leading-tight">{item.label}</span>
+                            <span
+                              className={`block text-[11px] leading-tight mt-0.5
+                                ${isActive ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}
+                              `}
+                            >
+                              {item.desc}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </nav>
 
-        {/* Footer info showing current Role for visibility */}
-        <div className="px-5 py-4 border-t border-white/10 dark:border-gray-700">
-          <p className="text-white/30 text-xs">Orbitani — Role: <span className="uppercase text-accent/80 font-semibold">{role}</span></p>
+        {/* ──── Footer ──── */}
+        <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-primary-100 flex items-center justify-center">
+              <Leaf size={12} className="text-primary" weight="fill" />
+            </div>
+            <div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                <span className="font-semibold text-primary uppercase">{role}</span>
+                <span className="mx-1">·</span>
+                Orbitani v2.0
+              </p>
+            </div>
+          </div>
         </div>
       </aside>
     </>

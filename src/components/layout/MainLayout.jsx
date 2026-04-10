@@ -7,11 +7,19 @@ const MainLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-screen bg-neutral dark:bg-gray-900 overflow-hidden font-sans">
-      <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} />
+    <div className="flex flex-col h-screen bg-white dark:bg-gray-950 overflow-hidden font-sans">
+      {/* ──── Top Navigation ──── */}
+      <Navbar
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        sidebarOpen={sidebarOpen}
+      />
+
+      {/* ──── Content area: Sidebar + Main ──── */}
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 overflow-auto bg-gradient-to-br from-neutral to-emerald-50/30 dark:from-gray-900 dark:to-teal-900/10">
+
+        {/* Main content — the "80% white" canvas */}
+        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-950 custom-scrollbar">
           <Outlet />
         </main>
       </div>

@@ -2,22 +2,127 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  font-family: 'Plus Jakarta Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  @apply text-neutral-text bg-neutral;
-}
-
-@layer utilities {
-  .glass-panel {
-    @apply backdrop-blur-[12px] bg-white/85 shadow-lg border border-white/20;
+/* ────────────────────────────────────────────
+ *  BASE — Global resets & defaults
+ * ──────────────────────────────────────────── */
+@layer base {
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    @apply text-gray-900 bg-white dark:text-gray-100 dark:bg-gray-950;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Custom selection color */
+  ::selection {
+    @apply bg-primary-100 text-primary-900;
+  }
+}
+
+/* ────────────────────────────────────────────
+ *  COMPONENT LAYER — Reusable design tokens
+ * ──────────────────────────────────────────── */
+@layer components {
+  /* Glass panel — frosted glass effect */
+  .glass-panel {
+    @apply backdrop-blur-xl bg-white/90 border border-gray-200 dark:bg-gray-900/90 dark:border-gray-800;
+  }
+
+  /* Card base */
+  .card {
+    @apply bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm
+           transition-shadow duration-200 hover:shadow-md;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-primary text-white font-semibold text-sm
+           px-5 py-2.5 rounded-xl
+           hover:bg-primary-hover active:scale-[0.98]
+           transition-all duration-200 ease-out
+           focus:outline-none focus:ring-2 focus:ring-primary-300 focus:ring-offset-2;
+  }
+
+  /* Ghost / outline button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent text-primary font-semibold text-sm
+           px-5 py-2.5 rounded-xl border border-primary/20
+           hover:bg-primary-50 active:scale-[0.98]
+           transition-all duration-200 ease-out
+           focus:outline-none focus:ring-2 focus:ring-primary-300 focus:ring-offset-2;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-surface-tertiary text-neutral-text font-semibold text-sm
+           px-5 py-2.5 rounded-xl border border-surface-border
+           hover:bg-surface-hover active:scale-[0.98]
+           transition-all duration-200 ease-out;
+  }
+
+  /* Input base */
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl text-sm
+           bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100
+           placeholder:text-gray-400 dark:placeholder:text-gray-500
+           focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400
+           dark:focus:ring-primary-900 dark:focus:border-primary-600
+           transition-all duration-200;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+           text-xs font-semibold;
+  }
+  .badge-success {
+    @apply badge bg-success-light text-success;
+  }
+  .badge-warning {
+    @apply badge bg-warning-light text-warning;
+  }
+  .badge-danger {
+    @apply badge bg-danger-light text-danger;
+  }
+}
+
+/* ────────────────────────────────────────────
+ *  UTILITY LAYER
+ * ──────────────────────────────────────────── */
+@layer utilities {
+  /* Skeleton loading shimmer */
   .skeleton-shimmer {
-    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background: linear-gradient(90deg, #e8eeeb 25%, #f1f5f3 50%, #e8eeeb 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  /* Custom scrollbar — slim & green-tinted */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary-200 rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary-300;
+  }
+
+  /* Hide scrollbar visually but keep scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

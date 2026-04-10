@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Leaf, User, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Leaf, User, Lock, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { loginUser } from '../../services/authService';
 import useAuthStore from '../../store/authStore';
@@ -20,10 +20,10 @@ const Login = () => {
     try {
       const data = await loginUser({ username, password });
       console.log("Response Backend:", data);
-      
+
       localStorage.setItem('orbitani_token', data.access_token);
       login(data.user, data.access_token);
-      
+
       console.log("Login Berhasil, Token Tersimpan!");
       toast.success('Login berhasil!');
       navigate('/dashboard');
@@ -49,34 +49,64 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary-light to-accent/30 px-4 py-8">
-      {/* Decorative floating shapes */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-accent/10 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse delay-1000" />
+    <div className="min-h-screen flex w-full bg-white dark:bg-gray-950 transition-colors duration-300">
 
-      <div className="relative w-full max-w-md">
-        {/* Logo / Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 shadow-lg">
-            <Leaf className="w-8 h-8 text-white" />
+      {/* ──── LEFT PANEL (Animated Hero) 50% ──── */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 items-center justify-center overflow-hidden">
+        {/* Animated decorative shapes */}
+        <div className="absolute top-1/4 -left-12 w-96 h-96 bg-primary-100/50 dark:bg-primary-900/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 -right-12 w-80 h-80 bg-secondary/10 dark:bg-secondary/5 rounded-full blur-3xl animate-pulse delay-1000" />
+
+        {/* Brand Content */}
+        <div className="relative z-10 text-center max-w-sm px-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-white dark:bg-gray-800 rounded-3xl mb-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <Leaf className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Orbitani</h1>
-          <p className="text-white/70 text-sm mt-1">Platform Pertanian Cerdas Berbasis AI & Satelit</p>
+          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight mb-4">Orbitani</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
+            Platform Pertanian Cerdas Berbasis AI & Remote Sensing untuk ekosistem pertanian modern.
+          </p>
+        </div>
+      </div>
+
+      {/* ──── RIGHT PANEL (Login Form) 50% ──── */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-start relative px-6 py-8 sm:px-12 bg-white dark:bg-gray-950">
+
+        {/* Back Button (Top Left) */}
+        <div className="w-full max-w-md mx-auto mb-8 sm:mb-12">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors group"
+          >
+            <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 group-hover:bg-white dark:group-hover:bg-gray-800 transition-colors shadow-sm">
+              <ArrowLeft size={16} />
+            </div>
+            Kembali ke Beranda
+          </Link>
         </div>
 
-        {/* Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-neutral-text">Selamat Datang</h2>
-            <p className="text-gray-500 text-sm mt-1">Masuk ke akun Anda untuk melanjutkan</p>
+        {/* Card Shape container */}
+        <div className="w-full max-w-md mx-auto bg-white dark:bg-gray-900 rounded-[2rem] shadow-xl border border-gray-100 dark:border-gray-800 p-8 sm:p-10 mb-8">
+
+          {/* Mobile Logo (Visible only on small screens) */}
+          <div className="lg:hidden text-center mb-10">
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-50 dark:bg-gray-800 rounded-2xl mb-4 shadow-sm border border-primary-100 dark:border-gray-700">
+              <Leaf className="w-7 h-7 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Orbitani</h1>
+          </div>
+
+          <div className="mb-8 text-center lg:text-left">
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight mb-2">Masuk ke Akun</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Silakan masukkan kredensial Anda untuk melanjutkan ke dashboard.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
+            {/* Username */}
             <div>
-              <label htmlFor="login-username" className="block text-sm font-medium text-neutral-text mb-1.5">Username</label>
+              <label htmlFor="login-username" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Username</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   id="login-username"
                   name="username"
@@ -85,7 +115,7 @@ const Login = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="masukkan username"
-                  className="w-full pl-11 pr-4 py-3 bg-neutral rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                  className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-900 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
                   required
                 />
               </div>
@@ -93,9 +123,9 @@ const Login = () => {
 
             {/* Password */}
             <div>
-              <label htmlFor="login-password" className="block text-sm font-medium text-neutral-text mb-1.5">Password</label>
+              <label htmlFor="login-password" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   id="login-password"
                   name="password"
@@ -104,13 +134,13 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-12 py-3 bg-neutral rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                  className="w-full pl-11 pr-12 py-3 bg-gray-50 dark:bg-gray-800 border border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-900 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -121,7 +151,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-hover active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-primary/25 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3.5 mt-6 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
@@ -129,24 +159,24 @@ const Login = () => {
                   <span>Memproses...</span>
                 </>
               ) : (
-                'Masuk'
+                'Masuk ke Dashboard'
               )}
             </button>
           </form>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400 uppercase tracking-wider">atau</span>
-            <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex items-center gap-4 my-8">
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+            <span className="text-xs text-gray-400 uppercase tracking-widest font-semibold">atau</span>
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
           </div>
 
           {/* Register Link */}
-          <p className="text-center text-sm text-gray-500">
-            Belum punya akun?{' '}
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 font-medium">
+            Belum memiliki akun?{' '}
             <Link
               to="/register"
-              className="text-primary font-semibold hover:text-primary-light transition-colors"
+              className="text-primary font-bold hover:text-primary-hover transition-colors"
             >
               Daftar Sekarang
             </Link>
@@ -154,9 +184,11 @@ const Login = () => {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-white/50 mt-6">
-          © 2026 Orbitani — Powered by AI & Google Earth Engine
-        </p>
+        <div className="w-full max-w-md mx-auto mt-auto pt-8">
+          <p className="text-center text-xs text-gray-400 dark:text-gray-600">
+            © 2026 Orbitani — Powered by AI & Satelit
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -1,86 +1,44 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
+import { Leaf, User, PaperPlaneRight, CircleNotch } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
-import { sendQuickChat, analyzeLahan } from '../../services/chatService';
+import { sendQuickChat, analyzeLahan } from '../../services/aiChatService';
+import { getAllLahan } from '../../services/lahanService';
 
-/* Shimmer skeleton for analysis loading (10-20s) */
-const AnalysisSkeleton = () => (
-  <div className="flex gap-3">
-    <div className="w-8 h-8 rounded-full skeleton-shimmer flex-shrink-0" />
-    <div className="flex-1 space-y-3 py-1">
-      <div className="h-4 skeleton-shimmer rounded-lg w-3/4" />
-      <div className="h-4 skeleton-shimmer rounded-lg w-full" />
-      <div className="h-4 skeleton-shimmer rounded-lg w-5/6" />
-      <div className="h-4 skeleton-shimmer rounded-lg w-2/3" />
-      <div className="h-3 skeleton-shimmer rounded-lg w-1/2 mt-2" />
-      <div className="h-3 skeleton-shimmer rounded-lg w-3/5" />
-    </div>
-  </div>
-);
-
-/* Typing indicator dots animation */
-const TypingIndicator = () => (
-  <div className="flex gap-3">
-    <div className="w-8 h-8 rounded-full bg-accent/15 flex items-center justify-center flex-shrink-0">
-      <Bot className="w-4 h-4 text-accent" />
-    </div>
-    <div className="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-gray-100 dark:border-gray-700">
-      <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-      </div>
-    </div>
-  </div>
-);
-
-/* Markdown custom components with branding */
+// Custom Markdown Renderer (Strict White Theme)
 const markdownComponents = {
-  h1: ({ children }) => (
-    <h1 className="text-lg font-bold mt-3 mb-1.5 text-primary dark:text-accent">{children}</h1>
-  ),
-  h2: ({ children }) => (
-    <h2 className="text-base font-bold mt-3 mb-1 text-primary dark:text-accent">{children}</h2>
-  ),
-  h3: ({ children }) => (
-    <h3 className="text-sm font-bold mt-2 mb-1 text-primary dark:text-accent/80">{children}</h3>
-  ),
-  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-  strong: ({ children }) => <strong className="font-semibold text-secondary">{children}</strong>,
-  em: ({ children }) => <em className="italic text-gray-600 dark:text-gray-300">{children}</em>,
-  ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
-  ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
-  li: ({ children }) => <li className="text-sm leading-relaxed">{children}</li>,
+  h1: ({ children }) => <h1 className="text-xl font-black mt-4 mb-2 text-gray-900">{children}</h1>,
+  h2: ({ children }) => <h2 className="text-lg font-bold mt-4 mb-2 text-gray-900">{children}</h2>,
+  h3: ({ children }) => <h3 className="text-base font-bold mt-3 mb-1 text-gray-900">{children}</h3>,
+  p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed text-gray-800">{children}</p>,
+  strong: ({ children }) => <strong className="font-extrabold text-gray-900">{children}</strong>,
+  em: ({ children }) => <em className="italic text-gray-600">{children}</em>,
+  ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1 text-gray-800">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1 text-gray-800">{children}</ol>,
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
   code: ({ children }) => (
-    <code className="bg-primary/5 dark:bg-accent/10 text-primary dark:text-accent px-1.5 py-0.5 rounded text-xs font-mono">
+    <code className="bg-gray-100 text-primary px-1.5 py-0.5 rounded text-[13px] font-mono font-bold border border-gray-200">
       {children}
     </code>
   ),
+  pre: ({ children }) => (
+    <pre className="bg-gray-50 p-4 rounded-xl overflow-x-auto border border-gray-200 mb-3 text-[13px] font-mono text-gray-800">
+      {children}
+    </pre>
+  ),
   table: ({ children }) => (
-    <div className="overflow-x-auto my-3 rounded-lg border border-gray-200 dark:border-gray-600">
-      <table className="min-w-full text-xs">{children}</table>
+    <div className="overflow-x-auto my-4 rounded-xl border border-gray-200 shadow-sm">
+      <table className="min-w-full text-sm text-left">{children}</table>
     </div>
   ),
-  thead: ({ children }) => (
-    <thead className="bg-primary/5 dark:bg-primary/30">{children}</thead>
-  ),
-  th: ({ children }) => (
-    <th className="px-3 py-2 text-left font-semibold text-primary dark:text-accent border-b border-gray-200 dark:border-gray-600">
-      {children}
-    </th>
-  ),
-  tbody: ({ children }) => <tbody className="divide-y divide-gray-100 dark:divide-gray-700">{children}</tbody>,
-  tr: ({ children, ...props }) => {
-    // Zebra striping via even/odd
-    return <tr className="even:bg-gray-50 dark:even:bg-gray-800/50">{children}</tr>;
-  },
-  td: ({ children }) => (
-    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{children}</td>
-  ),
+  thead: ({ children }) => <thead className="bg-gray-50 border-b border-gray-200">{children}</thead>,
+  th: ({ children }) => <th className="px-4 py-3 font-bold text-gray-900 truncate">{children}</th>,
+  tbody: ({ children }) => <tbody className="divide-y divide-gray-100">{children}</tbody>,
+  tr: ({ children }) => <tr className="hover:bg-gray-50/50 hover:bg-opacity-50 transition-colors">{children}</tr>,
+  td: ({ children }) => <td className="px-4 py-3 text-gray-800">{children}</td>,
   blockquote: ({ children }) => (
-    <blockquote className="border-l-4 border-secondary pl-3 my-2 text-gray-600 dark:text-gray-400 italic">
+    <blockquote className="border-l-4 border-primary/40 pl-4 my-3 text-gray-600 italic bg-gray-50/50 py-2 rounded-r-lg">
       {children}
     </blockquote>
   ),
@@ -90,210 +48,214 @@ const AIChat = () => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content:
-        'Halo! 👋 Saya **Pakar Agronomi AI** dari Orbitani.\n\nAnda bisa bertanya seputar:\n- 🌱 Teknik budidaya tanaman\n- 🧪 Analisis tanah & pupuk\n- 🛰️ Analisis lahan mendalam\n\nKetik pertanyaan Anda di bawah!',
-    },
+      content: 'Halo! Saya adalah **Pakar AI Agronomi Orbitani**. Ada masalah spesifik pada lahan atau tanaman Anda yang bisa saya analisis hari ini?'
+    }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [lahanOptions, setLahanOptions] = useState([]);
+  const [selectedLahan, setSelectedLahan] = useState('');
+  
+  const scrollRef = useRef(null);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading, isAnalyzing]);
+    fetchLahanOptions();
+  }, []);
 
-  // Countdown timer for 429 rate limit
   useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          toast.success('Anda bisa bertanya lagi sekarang!');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [countdown]);
+    // Smooth scroll to bottom every time messages update or loading state changes
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isLoading]);
 
-  const handleRateLimit = (err) => {
-    const retryAfter = err.response?.data?.retry_after_seconds || 60;
-    setCountdown(retryAfter);
-    toast.error(`Rate limit tercapai. Tunggu ${retryAfter} detik.`, {
-      duration: retryAfter * 1000,
-      icon: '⏳',
-    });
+  const fetchLahanOptions = async () => {
+    try {
+      const data = await getAllLahan();
+      setLahanOptions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed fetching lahan:', err);
+    }
   };
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || isLoading || isAnalyzing || countdown > 0) return;
+    if (!text || isLoading) return;
 
-    const userMsg = { role: 'user', content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    // Add user message
+    setMessages(prev => [...prev, { role: 'user', content: text }]);
     setInput('');
     setIsLoading(true);
 
     try {
-      const data = await sendQuickChat(text);
-      setMessages((prev) => [
+      let responseData;
+      if (selectedLahan) {
+        // AI Analysis context using specific Lahan ID
+        responseData = await analyzeLahan(text, selectedLahan);
+      } else {
+        // General Agronomy knowledge
+        responseData = await sendQuickChat(text);
+      }
+
+      setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: data.answer || data.response || 'Maaf, saya tidak bisa memproses jawaban.',
-        },
+          content: responseData.answer || responseData.response || 'Maaf, respon tidak dapat diproses saat ini.'
+        }
       ]);
     } catch (err) {
-      if (err.response?.status === 429) {
-        handleRateLimit(err);
-      }
-      // non-429 errors already handled by global interceptor
+      console.error(err);
+      // Wait handling UI. The global toast catches 503 from backend.
     } finally {
       setIsLoading(false);
-      inputRef.current?.focus();
-    }
-  };
-
-  const handleAnalyzeLahan = async (lahanId) => {
-    if (isLoading || isAnalyzing || countdown > 0) return;
-    setIsAnalyzing(true);
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', content: `🛰️ Analisis mendalam lahan #${lahanId}` },
-    ]);
-
-    try {
-      const prompt = `Berikan analisis mendalam untuk lahan ID #${lahanId}. Sertakan evaluasi kesuburan, rekomendasi pupuk, dan saran tindakan prioritas.`;
-      const data = await sendQuickChat(prompt);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: data.answer || data.response || 'Analisis selesai tanpa data.',
-        },
-      ]);
-    } catch (err) {
-      if (err.response?.status === 429) handleRateLimit(err);
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!isLoading && !isAnalyzing) handleSend();
+      handleSend();
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-neutral dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 lg:px-6 py-4 flex items-center justify-between flex-shrink-0">
+    <div className="h-full w-full flex flex-col bg-white overflow-hidden relative">
+      
+      {/* ──── HEADER & CONTEXT SELECTOR ──── */}
+      <div className="flex-shrink-0 px-4 py-3 md:px-8 md:py-4 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10 flex flex-col md:flex-row md:items-center justify-between gap-3 sticky top-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
-            <Bot className="w-5 h-5 text-accent" />
+          <div className="w-10 h-10 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center shrink-0">
+            <Leaf size={20} className="text-primary" weight="fill" />
           </div>
           <div>
-            <h2 className="font-semibold text-neutral-text dark:text-white">Pakar Agronomi AI</h2>
-            <p className="text-xs text-gray-400 flex items-center gap-1">
-              <span className="w-2 h-2 bg-green-400 rounded-full inline-block animate-pulse" />
-              Powered by Gemini
-            </p>
+            <h2 className="text-lg font-black text-gray-900 leading-tight">Pakar Agronomi AI</h2>
+            <p className="text-xs text-gray-500 font-medium">Asisten Analisis & Rekomendasi Pintar</p>
           </div>
         </div>
-        {countdown > 0 && (
-          <div className="flex items-center gap-2 text-sm text-secondary bg-secondary/10 px-3 py-1.5 rounded-lg">
-            <AlertTriangle className="w-4 h-4" />
-            <span>Tunggu {countdown}s</span>
-          </div>
-        )}
+
+        {/* Lahan Context Dropdown using Native Tailwind Styling */}
+        <div className="w-full md:w-64">
+          <select
+            value={selectedLahan}
+            onChange={(e) => setSelectedLahan(e.target.value)}
+            className="w-full appearance-none bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 cursor-pointer hover:shadow-sm transition-all"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+              backgroundPosition: `right 0.5rem center`,
+              backgroundRepeat: `no-repeat`,
+              backgroundSize: `1.5em 1.5em`,
+            }}
+          >
+            <option value="">+ Konteks Obrolan Umum</option>
+            {lahanOptions.map(lahan => (
+              <option key={lahan.id} value={lahan.id}>
+                📍 Lahan: {lahan.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4 space-y-4">
+      {/* ──── CHAT AREA ──── */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 custom-scrollbar bg-white">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            {/* Avatar */}
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                msg.role === 'user'
-                  ? 'bg-primary text-white'
-                  : 'bg-accent/15 text-accent'
-              }`}
-            >
-              {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-            </div>
+          <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`flex gap-3 max-w-[90%] md:max-w-[75%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              
+              {/* Avatar */}
+              <div className="flex-shrink-0">
+                {msg.role === 'user' ? (
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
+                    <User size={16} className="text-gray-600" weight="bold" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm">
+                    <Leaf size={16} className="text-white" weight="bold" />
+                  </div>
+                )}
+              </div>
 
-            {/* Bubble */}
-            <div
-              className={`max-w-[85%] lg:max-w-[65%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-primary text-white rounded-tr-sm'
-                  : 'bg-white dark:bg-gray-800 text-neutral-text dark:text-gray-100 rounded-tl-sm shadow-sm border border-gray-100 dark:border-gray-700'
-              }`}
-            >
-              {msg.role === 'assistant' ? (
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {msg.content}
-                </ReactMarkdown>
-              ) : (
-                msg.content
-              )}
+              {/* Bubble Body */}
+              <div
+                className={`py-3 px-5 rounded-2xl ${
+                  msg.role === 'user'
+                    ? 'bg-white border border-gray-200 shadow-sm text-gray-900 rounded-tr-sm'
+                    : 'bg-[#F8FAFB] text-gray-900 rounded-tl-sm'
+                }`}
+              >
+                {msg.role === 'assistant' ? (
+                  <div className="prose prose-sm max-w-none text-[15px]">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                )}
+              </div>
+
             </div>
           </div>
         ))}
 
-        {/* Typing indicator */}
-        {isLoading && <TypingIndicator />}
-
-        {/* Analysis shimmer skeleton */}
-        {isAnalyzing && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-4 shadow-sm border border-gray-100 dark:border-gray-700 max-w-[85%] lg:max-w-[65%]">
-            <div className="flex items-center gap-2 text-sm text-accent mb-3">
-              <Sparkles className="w-4 h-4 animate-pulse" />
-              <span className="font-medium">Menganalisis lahan... (10-20 detik)</span>
+        {/* Loading Indicator (Typing / Fetching) */}
+        {isLoading && (
+          <div className="flex w-full justify-start animate-fade-in">
+            <div className="flex gap-3 max-w-[75%]">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm flex-shrink-0">
+                <Leaf size={16} className="text-white" weight="bold" />
+              </div>
+              <div className="py-4 px-5 rounded-2xl bg-[#F8FAFB] rounded-tl-sm flex items-center gap-1.5 h-[50px]">
+                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
             </div>
-            <AnalysisSkeleton />
           </div>
         )}
 
-        <div ref={messagesEndRef} />
+        <div ref={scrollRef} className="h-4" />
       </div>
 
-      {/* Input */}
-      <div className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-4 lg:px-6 py-4 flex-shrink-0">
-        <div className="flex items-end gap-3">
-          <div className="flex-1">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={countdown > 0 ? `Tunggu ${countdown} detik...` : 'Ketik pertanyaan Anda...'}
-              disabled={isLoading || isAnalyzing || countdown > 0}
-              rows={1}
-              className="w-full resize-none bg-neutral dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm px-4 py-3 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed dark:text-white dark:placeholder-gray-400"
-            />
-          </div>
+      {/* ──── INPUT AREA ──── */}
+      <div className="flex-shrink-0 px-4 md:px-8 py-4 bg-white border-t border-gray-100 relative">
+        <div className="max-w-4xl mx-auto flex items-end gap-2 relative">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            placeholder={
+              selectedLahan 
+                ? "Tanyakan analisis seputar lahan yang Anda pilih..." 
+                : "Tanyakan apapun tentang agrikultur atau tanaman Anda..."
+            }
+            className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-2xl px-5 py-4 pr-16 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary-50 transition-all resize-none text-[15px] custom-scrollbar disabled:opacity-60 disabled:bg-gray-100"
+            rows={1}
+            style={{ 
+              minHeight: '60px', 
+              maxHeight: '160px',
+              height: 'auto' // would normally use an auto-resizer hook, keeping standard for minimal footprint
+            }}
+          />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isLoading || isAnalyzing || countdown > 0}
-            className="h-[46px] w-[46px] bg-primary text-white rounded-xl hover:bg-primary-hover active:scale-95 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-primary/20"
+            disabled={!input.trim() || isLoading}
+            className="absolute right-2 bottom-2 h-[44px] w-[44px] flex items-center justify-center bg-primary text-white rounded-xl hover:bg-primary-hover active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed transition-all shadow-sm"
           >
-            {isLoading || isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            {isLoading ? (
+              <CircleNotch size={22} className="animate-spin" weight="bold" />
+            ) : (
+              <PaperPlaneRight size={22} weight="fill" />
+            )}
           </button>
         </div>
+        <p className="text-center text-[11px] text-gray-400 mt-3 font-medium">
+          Daya analitik dari Gemini AI. AI dapat membuat kesalahan, periksa kembali rekomendasi kritis.
+        </p>
       </div>
+
     </div>
   );
 };

@@ -97,6 +97,18 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // 503 Service Unavailable — AI servers exhausted
+    if (status === 503 || status === 500) {
+      const requestUrl = error.config?.url || '';
+      if (requestUrl.includes('/api/chat/')) {
+        toast.error('🔄 Server sedang sibuk. Silakan coba kembali beberapa saat lagi.', {
+          duration: 6000,
+          style: { background: '#1c4234', color: '#fff' },
+        });
+        return Promise.reject(error);
+      }
+    }
+
     // All other errors — global toast (skip auth routes)
     const requestUrl = error.config?.url || '';
     const isAuthRoute = requestUrl.includes('/api/auth/login') || requestUrl.includes('/api/auth/register');
