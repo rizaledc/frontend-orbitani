@@ -421,9 +421,9 @@ const MapDashboard = () => {
                     <ChartLineUp size={18} className="text-primary" weight="duotone" />
                     <h3 className="text-sm font-bold text-gray-900 tracking-tight">Tren Kesuburan (NPK)</h3>
                   </div>
-                  <div className="w-full h-48 min-h-[200px]">
+                  <div className="w-full h-[200px]">
                     {isSlideOpen && (
-                      <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
+                      <ResponsiveContainer width="100%" height={200} minWidth={1}>
                         <LineChart data={analyticsData.length ? analyticsData : [{ day: 'Sen', n: 40, p: 20, k: 30 }, { day: 'Sel', n: 42, p: 21, k: 32 }, { day: 'Rab', n: 45, p: 25, k: 30 }, { day: 'Kam', n: 48, p: 28, k: 35 }]}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                           <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
@@ -444,9 +444,9 @@ const MapDashboard = () => {
                     <CloudSun size={18} className="text-blue-500" weight="duotone" />
                     <h3 className="text-sm font-bold text-gray-900 tracking-tight">Prediksi Curah Hujan</h3>
                   </div>
-                  <div className="w-full h-48 min-h-[200px]">
+                  <div className="w-full h-[200px]">
                     {isSlideOpen && (
-                      <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
+                      <ResponsiveContainer width="100%" height={200} minWidth={1}>
                         <LineChart data={[{ day: 'Sen', mm: 12 }, { day: 'Sel', mm: 5 }, { day: 'Rab', mm: 0 }, { day: 'Kam', mm: 35 }, { day: 'Jum', mm: 20 }]}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                           <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
