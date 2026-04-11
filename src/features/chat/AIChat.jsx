@@ -3,7 +3,7 @@ import { Leaf, User, PaperPlaneRight, CircleNotch, GearSix, Eye, EyeSlash, Key, 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
-import { sendQuickChat, analyzeLahan } from '../../services/aiChatService';
+import { sendQuickChat, analyzeLahan, fetchChatHistory, saveChatMessage } from '../../services/aiChatService';
 import { getAllLahan } from '../../services/lahanService';
 
 // Custom Markdown Renderer (Strict White Theme)
@@ -44,15 +44,17 @@ const markdownComponents = {
   ),
 };
 
+// Greeting message shown when there's no history
+const GREETING_MESSAGE = {
+  role: 'assistant',
+  content: 'Halo! Saya adalah **Pakar AI Agronomi Orbitani**. Ada masalah spesifik pada lahan atau tanaman Anda yang bisa saya analisis hari ini?'
+};
+
 const AIChat = () => {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Halo! Saya adalah **Pakar AI Agronomi Orbitani**. Ada masalah spesifik pada lahan atau tanaman Anda yang bisa saya analisis hari ini?'
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [lahanOptions, setLahanOptions] = useState([]);
   const [selectedLahan, setSelectedLahan] = useState('');
 
@@ -67,6 +69,7 @@ const AIChat = () => {
 
   useEffect(() => {
     fetchLahanOptions();
+    loadChatHistory();
   }, []);
 
   useEffect(() => {
@@ -75,6 +78,31 @@ const AIChat = () => {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isLoading]);
+
+  // ──── Fetch chat history from database ────
+  const loadChatHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const history = await fetchChatHistory();
+      if (Array.isArray(history) && history.length > 0) {
+        // Map backend roles: "ai" → "assistant" for frontend rendering
+        const mapped = history.map((msg) => ({
+          role: msg.role === 'ai' ? 'assistant' : msg.role,
+          content: msg.content,
+        }));
+        setMessages(mapped);
+      } else {
+        // No history yet, show greeting
+        setMessages([GREETING_MESSAGE]);
+      }
+    } catch (err) {
+      console.error('Failed to load chat history:', err);
+      // Fallback to greeting on error
+      setMessages([GREETING_MESSAGE]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
 
   const fetchLahanOptions = async () => {
     try {
@@ -117,31 +145,40 @@ const AIChat = () => {
     const text = input.trim();
     if (!text || isLoading) return;
 
-    // Add user message
+    // Step A: Optimistic UI — show user message immediately
     setMessages(prev => [...prev, { role: 'user', content: text }]);
     setInput('');
     setIsLoading(true);
 
     try {
+      // Step B: Persist user message to database (fire-and-forget, non-blocking)
+      saveChatMessage('user', text).catch((err) =>
+        console.warn('Failed to save user message to DB:', err)
+      );
+
+      // Step C: Call Gemini AI
       let responseData;
       if (selectedLahan) {
-        // AI Analysis context using specific Lahan ID
         responseData = await analyzeLahan(text, selectedLahan);
       } else {
-        // General Agronomy knowledge
         responseData = await sendQuickChat(text);
       }
 
+      const aiContent = responseData.answer || responseData.response || 'Maaf, respon tidak dapat diproses saat ini.';
+
+      // Step D: Show AI response in UI
       setMessages(prev => [
         ...prev,
-        {
-          role: 'assistant',
-          content: responseData.answer || responseData.response || 'Maaf, respon tidak dapat diproses saat ini.'
-        }
+        { role: 'assistant', content: aiContent }
       ]);
+
+      // Step E: Persist AI response to database (fire-and-forget)
+      saveChatMessage('ai', aiContent).catch((err) =>
+        console.warn('Failed to save AI message to DB:', err)
+      );
     } catch (err) {
       console.error(err);
-      // Wait handling UI. The global toast catches 503 from backend.
+      // Global interceptor handles toast for 503/429/etc.
     } finally {
       setIsLoading(false);
     }
@@ -153,6 +190,30 @@ const AIChat = () => {
       handleSend();
     }
   };
+
+  // ──── Skeleton Loader for History Loading ────
+  const HistorySkeleton = () => (
+    <div className="flex-1 overflow-hidden px-4 md:px-8 py-6 space-y-6 bg-white">
+      {[...Array(4)].map((_, idx) => (
+        <div key={idx} className={`flex w-full ${idx % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+          <div className={`flex gap-3 max-w-[70%] ${idx % 2 !== 0 ? 'flex-row-reverse' : ''}`}>
+            <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse flex-shrink-0" />
+            <div className="space-y-2 flex-1">
+              <div className={`h-4 bg-gray-100 rounded-lg animate-pulse ${idx % 2 === 0 ? 'w-3/4' : 'w-1/2'}`} />
+              <div className={`h-4 bg-gray-50 rounded-lg animate-pulse ${idx % 2 === 0 ? 'w-1/2' : 'w-2/3'}`} />
+              {idx % 2 === 0 && <div className="h-4 bg-gray-50 rounded-lg animate-pulse w-2/5" />}
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="flex justify-center pt-4">
+        <div className="flex items-center gap-2 text-gray-400">
+          <CircleNotch size={18} className="animate-spin text-primary" weight="bold" />
+          <span className="text-xs font-medium">Memuat riwayat obrolan...</span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="h-full w-full flex flex-col bg-white overflow-hidden relative">
@@ -207,66 +268,70 @@ const AIChat = () => {
         </div>
       </div>
 
-      {/* ──── CHAT AREA ──── */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 custom-scrollbar bg-white">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex gap-3 max-w-[90%] md:max-w-[75%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              
-              {/* Avatar */}
-              <div className="flex-shrink-0">
-                {msg.role === 'user' ? (
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
-                    <User size={16} className="text-gray-600" weight="bold" />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm">
-                    <Leaf size={16} className="text-white" weight="bold" />
-                  </div>
-                )}
-              </div>
+      {/* ──── CHAT AREA (or Skeleton) ──── */}
+      {isLoadingHistory ? (
+        <HistorySkeleton />
+      ) : (
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 custom-scrollbar bg-white">
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`flex gap-3 max-w-[90%] md:max-w-[75%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                
+                {/* Avatar */}
+                <div className="flex-shrink-0">
+                  {msg.role === 'user' ? (
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
+                      <User size={16} className="text-gray-600" weight="bold" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm">
+                      <Leaf size={16} className="text-white" weight="bold" />
+                    </div>
+                  )}
+                </div>
 
-              {/* Bubble Body */}
-              <div
-                className={`py-3 px-5 rounded-2xl ${
-                  msg.role === 'user'
-                    ? 'bg-white border border-gray-200 shadow-sm text-gray-900 rounded-tr-sm'
-                    : 'bg-[#F8FAFB] text-gray-900 rounded-tl-sm'
-                }`}
-              >
-                {msg.role === 'assistant' ? (
-                  <div className="prose prose-sm max-w-none text-[15px]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                      {msg.content}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                )}
-              </div>
+                {/* Bubble Body */}
+                <div
+                  className={`py-3 px-5 rounded-2xl ${
+                    msg.role === 'user'
+                      ? 'bg-white border border-gray-200 shadow-sm text-gray-900 rounded-tr-sm'
+                      : 'bg-[#F8FAFB] text-gray-900 rounded-tl-sm'
+                  }`}
+                >
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-sm max-w-none text-[15px]">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  )}
+                </div>
 
-            </div>
-          </div>
-        ))}
-
-        {/* Loading Indicator (Typing / Fetching) */}
-        {isLoading && (
-          <div className="flex w-full justify-start animate-fade-in">
-            <div className="flex gap-3 max-w-[75%]">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm flex-shrink-0">
-                <Leaf size={16} className="text-white" weight="bold" />
-              </div>
-              <div className="py-4 px-5 rounded-2xl bg-[#F8FAFB] rounded-tl-sm flex items-center gap-1.5 h-[50px]">
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
-          </div>
-        )}
+          ))}
 
-        <div ref={scrollRef} className="h-4" />
-      </div>
+          {/* Loading Indicator (Typing / Fetching) */}
+          {isLoading && (
+            <div className="flex w-full justify-start animate-fade-in">
+              <div className="flex gap-3 max-w-[75%]">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm flex-shrink-0">
+                  <Leaf size={16} className="text-white" weight="bold" />
+                </div>
+                <div className="py-4 px-5 rounded-2xl bg-[#F8FAFB] rounded-tl-sm flex items-center gap-1.5 h-[50px]">
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={scrollRef} className="h-4" />
+        </div>
+      )}
 
       {/* ──── INPUT AREA ──── */}
       <div className="flex-shrink-0 px-4 md:px-8 py-4 bg-white border-t border-gray-100 relative">
@@ -275,7 +340,7 @@ const AIChat = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isLoading}
+            disabled={isLoading || isLoadingHistory}
             placeholder={
               selectedLahan 
                 ? "Tanyakan analisis seputar lahan yang Anda pilih..." 
@@ -291,7 +356,7 @@ const AIChat = () => {
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || isLoadingHistory}
             className="absolute right-2 bottom-2 h-[44px] w-[44px] flex items-center justify-center bg-primary text-white rounded-xl hover:bg-primary-hover active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed transition-all shadow-sm"
           >
             {isLoading ? (

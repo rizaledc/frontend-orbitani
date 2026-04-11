@@ -18,3 +18,15 @@ export const analyzeLahan = async (message, lahanId) => {
   const response = await api.post('/api/chat/analyze-lahan', { message, lahan_id: lahanId }, { timeout: AI_TIMEOUT });
   return response.data;
 };
+
+/** GET /api/chat/history — Ambil riwayat obrolan dari database */
+export const fetchChatHistory = async () => {
+  const response = await api.get('/api/chat/history');
+  return response.data;
+};
+
+/** POST /api/chat/history — Simpan satu pesan obrolan ke database */
+export const saveChatMessage = async (role, content) => {
+  const response = await api.post('/api/chat/history', { role, content });
+  return response.data;
+};
