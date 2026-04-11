@@ -123,7 +123,7 @@ const MLOpsDashboard = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {Object.entries(llmStatus).map(([key, val]) => (
               <div key={key} className="bg-gray-50 rounded-xl p-5 border border-gray-100 flex items-start gap-3">
-                {val?.status === 'online' || val === true ? (
+                {val !== false && val !== null && val !== undefined && (typeof val !== 'object' || val?.status === 'online') ? (
                   <CheckCircle size={22} className="text-primary mt-0.5 shrink-0" weight="fill" />
                 ) : (
                   <XCircle size={22} className="text-red-500 mt-0.5 shrink-0" weight="fill" />
