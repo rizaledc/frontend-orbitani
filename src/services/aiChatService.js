@@ -19,14 +19,31 @@ export const analyzeLahan = async (message, lahanId) => {
   return response.data;
 };
 
-/** GET /api/chat/history — Ambil riwayat obrolan dari database */
-export const fetchChatHistory = async () => {
-  const response = await api.get('/api/chat/history');
+/** GET /api/chat/sessions — List all user multi-sessions */
+export const fetchChatSessions = async () => {
+  const response = await api.get('/api/chat/sessions');
+  return response.data.data;
+};
+
+/** GET /api/chat/history — Fetch specific session history */
+export const fetchChatHistory = async (sessionId) => {
+  const url = sessionId ? `/api/chat/history?session_id=${sessionId}` : '/api/chat/history';
+  const response = await api.get(url);
+  return response.data.data;
+};
+
+/** POST /api/chat/history — Simpan satu pesan obrolan ke session */
+export const saveChatMessage = async (role, content, sessionId = null, sessionTitle = null) => {
+  const payload = { role, content };
+  if (sessionId) payload.session_id = sessionId;
+  if (sessionTitle) payload.session_title = sessionTitle;
+  
+  const response = await api.post('/api/chat/history', payload);
   return response.data;
 };
 
-/** POST /api/chat/history — Simpan satu pesan obrolan ke database */
-export const saveChatMessage = async (role, content) => {
-  const response = await api.post('/api/chat/history', { role, content });
+/** PATCH /api/chat/sessions/{id} — Rename a session */
+export const updateSessionTitle = async (sessionId, newTitle) => {
+  const response = await api.patch(`/api/chat/sessions/${sessionId}`, { session_title: newTitle });
   return response.data;
 };
