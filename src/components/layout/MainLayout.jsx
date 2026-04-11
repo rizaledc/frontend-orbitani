@@ -19,7 +19,7 @@ const MainLayout = () => {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         {/* Main content — the "80% white" canvas */}
-        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-950 custom-scrollbar">
+        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-950 custom-scrollbar relative z-0">
           <Outlet />
         </main>
       </div>
