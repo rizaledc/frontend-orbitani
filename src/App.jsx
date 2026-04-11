@@ -17,6 +17,7 @@ import MLOpsDashboard from './features/admin/MLOpsDashboard';
 import UserProfile from './features/profile/UserProfile';
 import HumanChat from './features/chat/HumanChat';
 import MainLayout from './components/layout/MainLayout';
+import NotFound from './features/NotFound';
 
 /* Helper to get role safely */
 const getUserRole = () => {
@@ -137,8 +138,8 @@ function App() {
           </Route>
         </Route>
 
-        {/* Catch-all → back to home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Catch-all 404 */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );
