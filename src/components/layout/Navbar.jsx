@@ -81,9 +81,7 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
 
         {/* Brand */}
         <Link to="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 bg-primary-50 dark:bg-gray-800 rounded-xl flex items-center justify-center border border-primary-100 dark:border-gray-700 shadow-sm transition-shadow">
-            <Leaf size={22} className="text-primary" weight="fill" />
-          </div>
+
           <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight hidden sm:block">
             Orbitani
           </span>

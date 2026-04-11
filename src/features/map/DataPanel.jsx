@@ -14,7 +14,7 @@ const DataPanel = ({ data, onClose }) => {
         <div className="flex justify-between items-start mb-6">
           <div>
             <h3 className="text-xl font-bold text-neutral-text dark:text-white flex items-center gap-2">
-              <Leaf weight="duotone" className="text-primary dark:text-accent" />
+
               {data.nama || `Lahan #${data.id}`}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 capitalize">

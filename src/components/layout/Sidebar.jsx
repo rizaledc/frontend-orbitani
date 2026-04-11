@@ -131,9 +131,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         {/* ──── Brand stripe ──── */}
         <div className="px-5 pt-5 pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
-              <Leaf size={16} className="text-primary" weight="fill" />
-            </div>
+
             <div>
               <p className="text-[11px] font-semibold text-primary uppercase tracking-widest">
                 Menu Navigasi
@@ -214,9 +212,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         {/* ──── Footer ──── */}
         <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-primary-100 flex items-center justify-center">
-              <Leaf size={12} className="text-primary" weight="fill" />
-            </div>
+
             <div>
               <p className="text-[11px] text-gray-500 dark:text-gray-400">
                 <span className="font-semibold text-primary uppercase">{role}</span>

@@ -123,7 +123,7 @@ const AnalysisPanel = ({ data, onClose }) => {
       <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center flex-shrink-0">
         <div>
           <h3 className="text-lg font-bold text-neutral-text dark:text-white flex items-center gap-2">
-            <Leaf weight="duotone" className="text-primary dark:text-accent" size={24} />
+
             {data.nama || `Lahan #${data.id}`}
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 capitalize bg-gray-100 dark:bg-gray-800 inline-block px-2 py-0.5 rounded-full">
