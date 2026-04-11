@@ -75,7 +75,13 @@ const HumanChat = () => {
     return () => {
       isMounted = false;
       if (retryTimeout) clearTimeout(retryTimeout);
-      if (ws) ws.close();
+      if (ws) {
+        if (ws.readyState === 1) {
+          ws.close();
+        } else {
+          ws.onopen = () => ws.close();
+        }
+      }
     };
   }, [user?.id]);
 
