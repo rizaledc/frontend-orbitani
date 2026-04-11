@@ -192,7 +192,7 @@ const AIChat = () => {
   const handleStartRename = (e, session) => {
     e.stopPropagation();
     setEditingSessionId(session.session_id);
-    setEditTitleInput(session.session_title);
+    setEditTitleInput(session.session_title || '');
   };
 
   const handleSaveRename = async (e) => {
