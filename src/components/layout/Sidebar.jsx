@@ -120,7 +120,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       <aside
         id="main-sidebar"
         className={`
-          absolute inset-y-0 left-0 z-40 w-64 lg:w-72
+          absolute inset-y-0 left-0 z-40 w-3/4 sm:max-w-xs lg:w-1/5 lg:min-w-[260px] lg:max-w-xs
           bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
           transform transition-transform duration-300 ease-out
           lg:static lg:translate-x-0

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import toast from 'react-hot-toast';
 import axios from 'axios';
 import api from '../services/api';
 
@@ -34,6 +35,9 @@ const useAuthStore = create((set) => ({
       const res = await api.get('/api/auth/me');
       set({ token, user: res.data, isAuthenticated: true, isLoading: false });
     } catch (err) {
+      if (err.message === 'Network Error' || err.name === 'TypeError' || err.code === 'ERR_NETWORK') {
+        toast.error('Koneksi otentikasi gagal. Jika Anda menggunakan Brave atau Adblocker, mohon matikan fitur Shields untuk domain ini agar fitur berjalan normal.', { duration: 8000 });
+      }
       localStorage.removeItem('orbitani_token');
       set({ token: null, user: null, isAuthenticated: false, isLoading: false });
     }
