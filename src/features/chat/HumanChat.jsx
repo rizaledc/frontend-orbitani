@@ -76,10 +76,10 @@ const HumanChat = () => {
       isMounted = false;
       if (retryTimeout) clearTimeout(retryTimeout);
       if (ws) {
-        if (ws.readyState === 1) {
+        // Hanya tutup jika OPEN (1) atau CONNECTING (0)
+        // Hindari menutup jika sudah CLOSING (2) atau CLOSED (3)
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
           ws.close();
-        } else {
-          ws.onopen = () => ws.close();
         }
       }
     };
