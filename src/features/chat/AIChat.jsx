@@ -83,8 +83,17 @@ const AIChat = () => {
   // Session & Sidebar States
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Responsive
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024); // Responsive
   
+  // Resize listener to naturally hide sidebar on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+      else setIsSidebarOpen(true);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   // Rename States
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [editTitleInput, setEditTitleInput] = useState('');
@@ -344,9 +353,9 @@ const AIChat = () => {
       
       {/* ──── SIDEBAR ──── */}
       <div className={`
-          absolute lg:static top-0 left-0 h-full w-[280px] bg-gray-50 border-r border-gray-200 z-40
-          transform transition-transform duration-300 ease-in-out flex flex-col
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          absolute lg:relative top-0 left-0 h-full w-[280px] shrink-0 bg-gray-50 border-r border-gray-200 z-40
+          transition-all duration-300 ease-in-out flex flex-col
+          ${isSidebarOpen ? 'translate-x-0 lg:ml-0' : '-translate-x-full lg:ml-[-280px]'}
         `}
       >
         {/* Sidebar Header & New Chat Button */}
@@ -437,10 +446,11 @@ const AIChat = () => {
         <div className="flex-shrink-0 px-4 py-3 md:px-6 md:py-4 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0">
           
           <div className="flex items-center gap-3">
-            {/* Hamburger (Mobile) */}
+            {/* Hamburger Toggle (Global) */}
             <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Toggle Sidebar"
             >
               <List size={22} weight="bold" />
             </button>
