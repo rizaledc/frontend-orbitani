@@ -47,3 +47,9 @@ export const updateSessionTitle = async (sessionId, newTitle) => {
   const response = await api.patch(`/api/chat/sessions/${sessionId}`, { session_title: newTitle });
   return response.data;
 };
+
+/** DELETE /api/chat/sessions/{id} — Delete an entire session */
+export const deleteChatSession = async (sessionId) => {
+  const response = await api.delete(`/api/chat/sessions/${sessionId}`);
+  return response.data;
+};

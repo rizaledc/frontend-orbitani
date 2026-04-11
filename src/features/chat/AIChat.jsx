@@ -9,7 +9,8 @@ import {
   fetchChatHistory, 
   saveChatMessage,
   fetchChatSessions,
-  updateSessionTitle
+  updateSessionTitle,
+  deleteChatSession
 } from '../../services/aiChatService';
 import { getAllLahan } from '../../services/lahanService';
 
@@ -224,6 +225,28 @@ const AIChat = () => {
     setEditingSessionId(null);
   };
 
+  const handleDeleteSession = async (e, sessionId) => {
+    e.stopPropagation();
+    if (!window.confirm("Hapus percakapan ini secara permanen?")) return;
+
+    // Optimistic UI Update
+    const previousSessions = [...sessions];
+    setSessions(prev => prev.filter(s => s.session_id !== sessionId));
+    
+    // Auto-navigate to New Chat if the deleted session is currently active
+    if (currentSessionId === sessionId) {
+      handleNewChat();
+    }
+
+    try {
+      await deleteChatSession(sessionId);
+      toast.success("Percakapan berhasil dihapus.");
+    } catch (err) {
+      toast.error('Gagal menghapus percakapan.');
+      setSessions(previousSessions); // Rollback
+    }
+  };
+
   // ──── Chat Sending Logic ────
   const handleSend = async () => {
     const text = input.trim();
@@ -415,14 +438,24 @@ const AIChat = () => {
                     )}
                   </div>
 
-                  {/* Edit Pencil Icon (Visible on Hover if not editing) */}
+                  {/* Action Icons (Visible on Hover if not editing) */}
                   {editingSessionId !== session.session_id && (
-                    <button 
-                      onClick={(e) => handleStartRename(e, session)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-400 opacity-0 group-hover:opacity-100 hover:text-primary hover:bg-white border border-transparent hover:border-gray-200 hover:shadow-sm transition-all focus:opacity-100"
-                    >
-                      <PencilSimple size={14} weight="bold" />
-                    </button>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => handleStartRename(e, session)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-white border border-transparent hover:border-gray-200 hover:shadow-sm transition-all focus:opacity-100"
+                        title="Ubah Nama"
+                      >
+                        <PencilSimple size={14} weight="bold" />
+                      </button>
+                      <button 
+                        onClick={(e) => handleDeleteSession(e, session.session_id)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 hover:shadow-sm transition-all focus:opacity-100"
+                        title="Hapus Sesi"
+                      >
+                        <Trash size={14} weight="bold" />
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
