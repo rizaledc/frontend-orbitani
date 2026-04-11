@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Leaf, User, PaperPlaneRight, CircleNotch, GearSix, Eye, EyeSlash, Key, Trash, X, Info } from '@phosphor-icons/react';
+import { Leaf, User, PaperPlaneRight, CircleNotch, GearSix, Eye, EyeSlash, Key, Trash, X, Info, Plus } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
@@ -141,6 +141,10 @@ const AIChat = () => {
     toast.success('API Key dihapus. Kembali menggunakan server default Orbitani.', { duration: 4000 });
   };
 
+  const handleNewChat = () => {
+    setMessages([GREETING_MESSAGE]);
+  };
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || isLoading) return;
@@ -230,9 +234,19 @@ const AIChat = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* New Chat Button */}
+          <button
+            onClick={handleNewChat}
+            className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-bold shadow-sm hover:border-gray-300 hover:bg-gray-50 active:scale-95 transition-all"
+            title="Percakapan Baru"
+          >
+            <Plus size={16} weight="bold" />
+            <span className="hidden sm:inline">New Chat</span>
+          </button>
+
           {/* Lahan Context Dropdown using Native Tailwind Styling */}
-          <div className="w-full md:w-64">
+          <div className="w-[140px] md:w-64">
             <select
               value={selectedLahan}
               onChange={(e) => setSelectedLahan(e.target.value)}
