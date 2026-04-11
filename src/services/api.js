@@ -32,6 +32,13 @@ api.interceptors.request.use(
     } else {
       delete config.headers.Authorization;
     }
+
+    // BYOK: Attach custom Gemini API key if user has set one
+    const customKey = localStorage.getItem('custom_gemini_key');
+    if (customKey) {
+      config.headers['X-Custom-Gemini-Key'] = customKey;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
