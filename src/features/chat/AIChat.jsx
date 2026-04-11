@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Leaf, User, PaperPlaneRight, CircleNotch, GearSix, Eye, EyeSlash, Key, Trash, X, Info, Plus, List, CaretDoubleLeft, ChatTeardropText, PencilSimple, Check } from '@phosphor-icons/react';
+import { Leaf, User, PaperPlaneRight, CircleNotch, GearSix, Eye, EyeSlash, Key, Trash, X, Info, Plus, ClockCounterClockwise, CaretDoubleLeft, ChatTeardropText, PencilSimple, Check } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
@@ -489,7 +489,7 @@ const AIChat = () => {
               className="p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
               title="Toggle Sidebar"
             >
-              <List size={22} weight="bold" />
+              <ClockCounterClockwise size={22} weight="bold" />
             </button>
             <div className="w-10 h-10 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center shrink-0">
               <Leaf size={20} className="text-primary" weight="fill" />
