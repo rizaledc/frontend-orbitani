@@ -62,7 +62,7 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
     <header
       id="main-navbar"
       className="
-        h-[72px] flex items-center justify-between px-4 lg:px-6
+        w-full py-4 flex flex-shrink-0 items-center justify-between px-4 lg:px-6
         bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm
         z-50 relative transition-colors duration-300
       "

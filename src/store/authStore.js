@@ -6,7 +6,7 @@ const useAuthStore = create((set) => ({
   user: null,
   token: localStorage.getItem('orbitani_token') || null,
   isAuthenticated: !!localStorage.getItem('orbitani_token'),
-  isLoading: false,
+  isLoading: true,
   error: null,
 
   login: (userData, token) => {
@@ -25,14 +25,17 @@ const useAuthStore = create((set) => ({
 
   initializeAuth: async () => {
     const token = localStorage.getItem('orbitani_token');
-    if (token) {
-      try {
-        const res = await api.get('/api/auth/me');
-        set({ token, user: res.data, isAuthenticated: true });
-      } catch (err) {
-        localStorage.removeItem('orbitani_token');
-        set({ token: null, user: null, isAuthenticated: false });
-      }
+    if (!token) {
+      set({ isLoading: false, isAuthenticated: false, user: null });
+      return;
+    }
+    
+    try {
+      const res = await api.get('/api/auth/me');
+      set({ token, user: res.data, isAuthenticated: true, isLoading: false });
+    } catch (err) {
+      localStorage.removeItem('orbitani_token');
+      set({ token: null, user: null, isAuthenticated: false, isLoading: false });
     }
   },
 }));

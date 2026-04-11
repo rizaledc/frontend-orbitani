@@ -31,16 +31,29 @@ const getUserRole = () => {
   }
 };
 
+/* Loading fallback component */
+const RouteSuspense = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 absolute inset-0 z-[99999]">
+    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+  </div>
+);
+
 /* Protected Route Wrapper */
 const ProtectedRoute = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  
+  if (isLoading) return <RouteSuspense />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <Outlet />;
 };
 
 /* Role Based Route Wrapper */
 const RoleProtectedRoute = ({ allowedRoles }) => {
+  const isLoading = useAuthStore((state) => state.isLoading);
   const role = getUserRole();
+  
+  if (isLoading) return <RouteSuspense />;
   if (!allowedRoles.includes(role)) {
     // If not allowed, silently redirect back to dashboard
     return <Navigate to="/dashboard" replace />;
