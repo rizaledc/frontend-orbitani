@@ -76,15 +76,16 @@ const timeAgo = (dateInput) => {
 };
 
 const AIChat = () => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([GREETING_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
   // Session & Sidebar States
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024); // Responsive
+  const [currentSessionTitle, setCurrentSessionTitle] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
   
   // Resize listener to naturally hide sidebar on mobile
   useEffect(() => {
@@ -95,6 +96,7 @@ const AIChat = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   // Rename States
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [editTitleInput, setEditTitleInput] = useState('');
@@ -117,13 +119,7 @@ const AIChat = () => {
     loadSessions();
   }, []);
 
-  // When current session changes, load its history
   useEffect(() => {
-    loadChatHistory(currentSessionId);
-  }, [currentSessionId]);
-
-  useEffect(() => {
-    // Smooth scroll to bottom every time messages update or loading state changes
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -150,9 +146,7 @@ const AIChat = () => {
 
   const loadChatHistory = async (sessionId) => {
     if (!sessionId) {
-      // New chat state
       setMessages([GREETING_MESSAGE]);
-      setIsLoadingHistory(false);
       return;
     }
 
@@ -160,7 +154,6 @@ const AIChat = () => {
     try {
       const history = await fetchChatHistory(sessionId);
       if (Array.isArray(history) && history.length > 0) {
-        // Map backend roles: "ai" → "assistant" for frontend rendering
         const mapped = history.map((msg) => ({
           role: msg.role === 'ai' ? 'assistant' : msg.role,
           content: msg.content,
@@ -180,12 +173,18 @@ const AIChat = () => {
   // ──── Action Handlers ────
   const handleNewChat = () => {
     setCurrentSessionId(null);
-    if (window.innerWidth < 1024) setIsSidebarOpen(false); // close sidebar on mobile
+    setCurrentSessionTitle(null);
+    setMessages([GREETING_MESSAGE]);
+    if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
   const handleSelectSession = (id) => {
     if (id === currentSessionId) return;
     setCurrentSessionId(id);
+    // Find the session title from our sessions array
+    const found = sessions.find(s => s.session_id === id);
+    setCurrentSessionTitle(found?.session_title || null);
+    loadChatHistory(id);
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
@@ -203,18 +202,21 @@ const AIChat = () => {
       return;
     }
     
-    // Optimistic UI update in sidebar
+    const newTitle = editTitleInput.trim();
     setSessions(prev => 
-      prev.map(s => s.session_id === editingSessionId ? { ...s, session_title: editTitleInput.trim() } : s)
+      prev.map(s => s.session_id === editingSessionId ? { ...s, session_title: newTitle } : s)
     );
+    // Also update local tracking if it's the active session
+    if (editingSessionId === currentSessionId) {
+      setCurrentSessionTitle(newTitle);
+    }
     
     try {
-      await updateSessionTitle(editingSessionId, editTitleInput.trim());
-      // Refresh strictly from backend in background to keep date exact
+      await updateSessionTitle(editingSessionId, newTitle);
       loadSessions();
     } catch (err) {
       toast.error('Gagal mengganti nama sesi');
-      loadSessions(); // Rollback on failure
+      loadSessions();
     } finally {
       setEditingSessionId(null);
     }
@@ -229,13 +231,13 @@ const AIChat = () => {
     e.stopPropagation();
     if (!window.confirm("Hapus percakapan ini secara permanen?")) return;
 
-    // Optimistic UI Update
     const previousSessions = [...sessions];
     setSessions(prev => prev.filter(s => s.session_id !== sessionId));
     
-    // Auto-navigate to New Chat if the deleted session is currently active
     if (currentSessionId === sessionId) {
-      handleNewChat();
+      setCurrentSessionId(null);
+      setCurrentSessionTitle(null);
+      setMessages([GREETING_MESSAGE]);
     }
 
     try {
@@ -243,7 +245,7 @@ const AIChat = () => {
       toast.success("Percakapan berhasil dihapus.");
     } catch (err) {
       toast.error('Gagal menghapus percakapan.');
-      setSessions(previousSessions); // Rollback
+      setSessions(previousSessions);
     }
   };
 
@@ -252,22 +254,26 @@ const AIChat = () => {
     const text = input.trim();
     if (!text || isLoading) return;
 
-    // Auto-Title Fallback Logic for New Sessions
+    // Auto-Title & Session ID for New Sessions
     let activeSessionId = currentSessionId;
-    let newSessionTitle = null;
+    let activeTitle = currentSessionTitle;
+    let isNewSession = false;
     
     if (!activeSessionId) {
-      // 1. Generate new UUID
+      isNewSession = true;
       activeSessionId = crypto.randomUUID();
-      setCurrentSessionId(activeSessionId); // update local state
-
-      // 2. Extract first 4 words or max 20 chars if gibberish (no spaces)
+      
+      // Extract first 4 words or max 20 chars if gibberish (no spaces)
       const words = text.split(/\s+/);
-      if (words.length > 0 && text.includes(' ')) {
-        newSessionTitle = words.slice(0, 4).join(' ');
+      if (words.length > 1) {
+        activeTitle = words.slice(0, 4).join(' ');
       } else {
-        newSessionTitle = text.substring(0, 20); // 20 char fallback
+        activeTitle = text.substring(0, 20);
       }
+
+      // Update state immediately (NO useEffect will fire since we removed the dependency)
+      setCurrentSessionId(activeSessionId);
+      setCurrentSessionTitle(activeTitle);
     }
 
     // Step A: Optimistic UI
@@ -276,11 +282,10 @@ const AIChat = () => {
     setIsLoading(true);
 
     try {
-      // Step B: Persist user message to DB (contains UUID and Title on first send)
-      saveChatMessage('user', text, activeSessionId, newSessionTitle)
+      // Step B: Persist user message to DB (title only on first message of session)
+      saveChatMessage('user', text, activeSessionId, isNewSession ? activeTitle : activeTitle)
         .then(() => {
-          // If it was a new session, reload sidebar gently to show it
-          if (newSessionTitle) loadSessions();
+          if (isNewSession) loadSessions();
         })
         .catch((err) => console.warn('Failed to save user msg:', err));
 
@@ -300,13 +305,12 @@ const AIChat = () => {
         { role: 'assistant', content: aiContent }
       ]);
 
-      // Step E: Persist AI response
-      saveChatMessage('ai', aiContent, activeSessionId, null)
+      // Step E: Persist AI response — ALWAYS pass title to prevent null overwrite
+      saveChatMessage('ai', aiContent, activeSessionId, activeTitle)
         .catch((err) => console.warn('Failed to save AI msg:', err));
 
     } catch (err) {
       console.error(err);
-      // Let global interceptor handle toast
     } finally {
       setIsLoading(false);
     }
