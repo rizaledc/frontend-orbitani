@@ -122,16 +122,20 @@ const MLOpsDashboard = () => {
         ) : llmStatus ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {Object.entries(llmStatus).map(([key, val]) => (
-              <div key={key} className="bg-gray-50 rounded-xl p-5 border border-gray-100 flex items-start gap-3">
-                {val !== false && val !== null && val !== undefined && (typeof val !== 'object' || val?.status === 'online') ? (
+              <div key={key} className="bg-gray-50 rounded-xl p-5 border border-gray-100 flex items-start gap-3 overflow-hidden">
+                {val !== false && val !== null && val !== undefined && (Array.isArray(val) || typeof val !== 'object' || val?.status === 'online') ? (
                   <CheckCircle size={22} className="text-primary mt-0.5 shrink-0" weight="fill" />
                 ) : (
                   <XCircle size={22} className="text-red-500 mt-0.5 shrink-0" weight="fill" />
                 )}
-                <div>
+                <div className="flex-1 min-w-0 break-all">
                   <p className="text-sm font-bold text-gray-900 capitalize">{key.replace(/_/g, ' ')}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {typeof val === 'object' ? (val?.status || JSON.stringify(val)) : String(val)}
+                  <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">
+                    {Array.isArray(val) 
+                      ? val.join(', ') 
+                      : typeof val === 'object' 
+                        ? (val?.status || JSON.stringify(val)) 
+                        : String(val)}
                   </p>
                 </div>
               </div>
