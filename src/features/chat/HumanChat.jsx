@@ -21,29 +21,61 @@ const HumanChat = () => {
     // Setup WebSocket for Real-Time Messaging
     if (!user?.id) return;
     
-    // Automatically convert current HTTP BaseUrl to WSS
-    const httpUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-    const wsUrl = httpUrl.replace(/^http/, 'ws') + `/api/chat-live/ws/${user.id}`;
-    
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onmessage = (event) => {
-      try {
-        const incoming = JSON.parse(event.data);
-        if (incoming.event === "new_message") {
-          const newMsg = incoming.data;
-          // Append message if it belongs to the currently selected contact
-          setMessages(prev => {
-            // Check if we already have it (Optimistic UI overlap prevention)
-            if (prev.some(m => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
+    let ws = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    let retryTimeout = null;
+    let isMounted = true;
+
+    const connect = () => {
+      if (!isMounted || retryCount >= MAX_RETRIES) return;
+
+      // Automatically convert current HTTP BaseUrl to WSS
+      const httpUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const wsUrl = httpUrl.replace(/^http/, 'ws') + `/api/chat-live/ws/${user.id}`;
+      
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        retryCount = 0; // Reset retry count on successful connection
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const incoming = JSON.parse(event.data);
+          if (incoming.event === "new_message") {
+            const newMsg = incoming.data;
+            setMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+          }
+        } catch(e) { console.error("WS Parse error", e); }
+      };
+
+      ws.onerror = () => {
+        // Silently handle — onclose will fire next
+      };
+
+      ws.onclose = () => {
+        if (!isMounted) return;
+        retryCount++;
+        if (retryCount < MAX_RETRIES) {
+          // Exponential backoff: 2s, 4s, 8s
+          const delay = Math.pow(2, retryCount) * 1000;
+          retryTimeout = setTimeout(connect, delay);
+        } else {
+          console.warn('WebSocket: Endpoint chat-live tidak tersedia. Fitur real-time dinonaktifkan.');
         }
-      } catch(e) { console.error("WS Parse error", e); }
+      };
     };
 
+    connect();
+
     return () => {
-      ws.close();
+      isMounted = false;
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (ws) ws.close();
     };
   }, [user?.id]);
 

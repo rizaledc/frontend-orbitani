@@ -423,7 +423,7 @@ const MapDashboard = () => {
                   </div>
                   <div className="h-48 w-full">
                     {isSlideOpen && (
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <LineChart data={analyticsData.length ? analyticsData : [{ day: 'Sen', n: 40, p: 20, k: 30 }, { day: 'Sel', n: 42, p: 21, k: 32 }, { day: 'Rab', n: 45, p: 25, k: 30 }, { day: 'Kam', n: 48, p: 28, k: 35 }]}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                           <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
@@ -446,7 +446,7 @@ const MapDashboard = () => {
                   </div>
                   <div className="h-48 w-full">
                     {isSlideOpen && (
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <LineChart data={[{ day: 'Sen', mm: 12 }, { day: 'Sel', mm: 5 }, { day: 'Rab', mm: 0 }, { day: 'Kam', mm: 35 }, { day: 'Jum', mm: 20 }]}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                           <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
