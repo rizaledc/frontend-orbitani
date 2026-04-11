@@ -10,7 +10,7 @@ const ChartCard = ({ title, dataKey, data, color, yAxisLabel }) => (
   <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700">
     <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-4">{title}</h3>
     <div className="w-full h-72 min-h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minHeight={300} minWidth={0}>
         <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.15} />
           <XAxis 
