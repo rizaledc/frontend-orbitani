@@ -76,10 +76,13 @@ const HumanChat = () => {
       isMounted = false;
       if (retryTimeout) clearTimeout(retryTimeout);
       if (ws) {
-        // Hanya tutup jika OPEN (1) atau CONNECTING (0)
-        // Hindari menutup jika sudah CLOSING (2) atau CLOSED (3)
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        if (ws.readyState === WebSocket.OPEN) {
           ws.close();
+        } else if (ws.readyState === WebSocket.CONNECTING) {
+          // Menutup koneksi yang sedang dalam proses (CONNECTING) akan menimbulkan
+          // error di console "close before established". Kita siasati dengan menunda
+          // proses close tepat di saat onopen fire.
+          ws.onopen = () => ws.close();
         }
       }
     };
