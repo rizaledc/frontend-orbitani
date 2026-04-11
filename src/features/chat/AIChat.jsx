@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Leaf, User, PaperPlaneRight, CircleNotch, GearSix, Eye, EyeSlash, Key, Trash, X, Info, Plus, ClockCounterClockwise, CaretDoubleLeft, ChatTeardropText, PencilSimple, Check } from '@phosphor-icons/react';
+import { Sparkle, User, PaperPlaneRight, CircleNotch, GearSix, Eye, EyeSlash, Key, Trash, X, Info, Plus, ClockCounterClockwise, CaretDoubleLeft, ChatTeardropText, PencilSimple, Check } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
@@ -492,7 +492,7 @@ const AIChat = () => {
               <ClockCounterClockwise size={22} weight="bold" />
             </button>
             <div className="w-10 h-10 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center shrink-0">
-              <Leaf size={20} className="text-primary" weight="fill" />
+              <Sparkle size={20} className="text-primary" weight="fill" />
             </div>
             <div className="hidden sm:block">
               <h2 className="text-lg font-black text-gray-900 leading-tight">Pakar Agronomi AI</h2>
@@ -555,7 +555,7 @@ const AIChat = () => {
                       </div>
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm">
-                        <Leaf size={16} className="text-white" weight="bold" />
+                        <Sparkle size={16} className="text-white" weight="fill" />
                       </div>
                     )}
                   </div>
@@ -588,7 +588,7 @@ const AIChat = () => {
               <div className="flex w-full justify-start animate-fade-in">
                 <div className="flex gap-3 max-w-[75%]">
                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm flex-shrink-0">
-                    <Leaf size={16} className="text-white" weight="bold" />
+                    <Sparkle size={16} className="text-white" weight="fill" />
                   </div>
                   <div className="py-4 px-5 rounded-2xl bg-[#F8FAFB] rounded-tl-sm flex items-center gap-1.5 h-[50px]">
                     <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />

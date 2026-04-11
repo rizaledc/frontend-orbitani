@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { 
   X, Hash, Thermometer, Drop, CloudRain, 
-  PaperPlaneRight, Robot, User, SpinnerGap, Leaf 
+  PaperPlaneRight, Sparkle, User, SpinnerGap, Leaf 
 } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -190,7 +190,7 @@ const AnalysisPanel = ({ data, onClose }) => {
         <div className="flex flex-col h-[400px] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden bg-gray-50/50 dark:bg-gray-800/20 shadow-inner">
           <div className="bg-primary/5 dark:bg-primary/20 px-4 py-3 border-b border-primary/10 dark:border-primary/30 flex justify-between items-center gap-2">
             <div className="flex items-center gap-2">
-              <Robot size={22} weight="duotone" className="text-primary dark:text-accent" />
+              <Sparkle size={22} weight="fill" className="text-primary dark:text-accent" />
               <h4 className="text-sm font-semibold text-primary dark:text-accent">Konsultasi Pakar AI</h4>
             </div>
             <button
@@ -206,7 +206,7 @@ const AnalysisPanel = ({ data, onClose }) => {
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-accent/20 text-primary dark:text-accent'}`}>
-                  {msg.role === 'user' ? <User size={14} weight="bold" /> : <Robot size={14} weight="bold" />}
+                  {msg.role === 'user' ? <User size={14} weight="bold" /> : <Sparkle size={14} weight="fill" />}
                 </div>
                 <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border ${
                     msg.role === 'user'
@@ -233,7 +233,7 @@ const AnalysisPanel = ({ data, onClose }) => {
             {isChatLoading && (
               <div className="flex gap-3">
                 <div className="w-7 h-7 rounded-full bg-accent/20 text-primary dark:text-accent flex items-center justify-center flex-shrink-0">
-                  <Robot size={14} weight="bold" />
+                  <Sparkle size={14} weight="fill" />
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-2">
                   <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
