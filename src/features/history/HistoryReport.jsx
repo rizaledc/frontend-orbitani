@@ -12,19 +12,71 @@ const HistoryReport = () => {
     fetchHistory();
   }, []);
 
+  /**
+   * Mapper: Normalisasi key dari backend ke format yang diharapkan tabel UI.
+   * Backend mungkin mengirim key berbeda (misal: "phosphorus" vs "fosfor", "potassium" vs "kalium").
+   * Fungsi ini memastikan data tetap bisa masuk ke kolom tabel apapun format JSON backend-nya.
+   */
+  const mapRowData = (raw) => {
+    // Ekstraksi data bersarang (jika backend membungkus di satellite_results)
+    const source = raw.satellite_results || raw.data || raw;
+
+    // Helper untuk pembulatan angka secara aman
+    const formatInt = (val) => val != null && !isNaN(val) ? Math.round(Number(val)) : null;
+    const formatFloat = (val) => val != null && !isNaN(val) ? Number(val).toFixed(2) : null;
+    
+    // Ekstraksi ai_recommendation
+    const cropLabel = raw.ai_recommendation || 
+                      source.ai_recommendation || 
+                      raw.label || 
+                      source.label || 
+                      raw.predicted_crop || 
+                      source.predicted_crop || 
+                      raw.tanaman || 
+                      null;
+
+    return {
+      id: raw.id,
+      created_at: raw.created_at || raw.timestamp || raw.date || new Date().toISOString(),
+      longitude: raw.longitude ?? source.lon ?? source.lng ?? null,
+      latitude: raw.latitude ?? source.lat ?? null,
+      
+      // Formatting sesuai instruksi
+      nitrogen: formatInt(source.nitrogen ?? source.n ?? raw.nitrogen ?? raw.n),
+      fosfor: formatInt(source.fosfor ?? source.phosphorus ?? source.p ?? raw.fosfor ?? raw.phosphorus ?? raw.p),
+      kalium: formatInt(source.kalium ?? source.potassium ?? source.k ?? raw.kalium ?? raw.potassium ?? raw.k),
+      ph: formatFloat(source.ph ?? source.pH ?? raw.ph ?? raw.pH),
+      tci: formatFloat(source.tci ?? source.temperature ?? source.temp ?? raw.tci ?? raw.temperature ?? raw.temp),
+      ndti: formatFloat(source.ndti ?? source.humidity ?? source.humid ?? raw.ndti ?? raw.humidity ?? raw.humid),
+      rainfall: formatFloat(source.rainfall ?? source.rain ?? source.curah_hujan ?? raw.rainfall ?? raw.rain ?? raw.curah_hujan),
+      
+      label: cropLabel ? String(cropLabel).toUpperCase() : null, // Standarisasi output teks
+    };
+  };
+
   const fetchHistory = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get('/api/history');
-      setData(res.data?.data || res.data || []);
+      // PENTING: Trailing slash WAJIB untuk FastAPI
+      const res = await api.get('/api/history/');
+      const rawData = res.data?.data || res.data || [];
+      setData(Array.isArray(rawData) ? rawData.map(mapRowData) : []);
     } catch (err) {
-      console.warn("History API Error:", err);
-      // Dummy data fallback for UI development if backend is not ready
-      if (!err.response || err.response.status === 404) {
+      // === DEBUG LOG: Lihat detail error di Developer Tools (F12 → Console) ===
+      console.error("=== HISTORY API DEBUG ===");
+      console.error("Status:", err.response?.status);
+      console.error("Status Text:", err.response?.statusText);
+      console.error("Response Data:", err.response?.data);
+      console.error("Request URL:", err.config?.url);
+      console.error("Full Error:", err);
+      console.error("========================");
+
+      // Fallback dummy data jika backend belum siap
+      if (!err.response || err.response.status === 404 || err.response.status === 500) {
         setData([
           { id: 1, created_at: new Date().toISOString(), longitude: 106.975, latitude: -6.701, nitrogen: 45, fosfor: 20, kalium: 30, ph: 6.5, tci: 28.5, ndti: 0.45, rainfall: 120, label: "Padi" }
         ]);
-        toast.error("Beralih ke Dummy Data (API /api/history belum siap)");
+        toast.error(`Fallback ke Dummy Data — Backend merespons: ${err.response?.status || 'Network Error'}`);
       }
     } finally {
       setIsLoading(false);
@@ -43,7 +95,7 @@ const HistoryReport = () => {
     toast.success("Berhasil mengekspor ke Excel!");
   };
 
-  const tableHeaders = ["Tanggal", "Long", "Lat", "N", "P", "K", "pH", "Temp (TCI)", "Humid (NDTI)", "Rainfall", "Tanaman"];
+  const tableHeaders = ["Tanggal", "Jam", "Long", "Lat", "N", "P", "K", "pH", "Temp (TCI)", "Humid (NDTI)", "Rainfall", "Tanaman"];
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto flex flex-col h-full animate-fade-in">
@@ -92,20 +144,29 @@ const HistoryReport = () => {
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50 text-gray-700 dark:text-gray-200">
                 {data.map((row, idx) => (
                   <tr key={row.id || idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-5 py-4">{new Date(row.created_at).toLocaleDateString('id-ID')}</td>
-                    <td className="px-5 py-4 text-xs font-mono">{row.longitude?.toFixed(4) || '-'}</td>
-                    <td className="px-5 py-4 text-xs font-mono">{row.latitude?.toFixed(4) || '-'}</td>
+                    <td className="px-5 py-4 font-medium whitespace-nowrap">{new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td className="px-5 py-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                    </td>
+                    <td className="px-5 py-4 text-xs font-mono">{row.longitude != null ? Number(row.longitude).toFixed(4) : '-'}</td>
+                    <td className="px-5 py-4 text-xs font-mono">{row.latitude != null ? Number(row.latitude).toFixed(4) : '-'}</td>
                     <td className="px-5 py-4 font-medium text-primary dark:text-accent/80">{row.nitrogen ?? '-'}</td>
                     <td className="px-5 py-4 font-medium text-primary dark:text-accent/80">{row.fosfor ?? '-'}</td>
                     <td className="px-5 py-4 font-medium text-primary dark:text-accent/80">{row.kalium ?? '-'}</td>
                     <td className="px-5 py-4 text-orange-600 dark:text-orange-400">{row.ph ?? '-'}</td>
-                    <td className="px-5 py-4 text-red-600 dark:text-red-400">{row.tci ?? '-'}°</td>
+                    <td className="px-5 py-4 text-red-600 dark:text-red-400">{row.tci != null ? `${row.tci}°C` : '-'}</td>
                     <td className="px-5 py-4 text-blue-600 dark:text-blue-400">{row.ndti ?? '-'}</td>
-                    <td className="px-5 py-4 text-cyan-600 dark:text-cyan-400">{row.rainfall ?? '-'} mm</td>
+                    <td className="px-5 py-4 text-cyan-600 dark:text-cyan-400">{row.rainfall != null ? `${row.rainfall} mm` : '-'}</td>
                     <td className="px-5 py-4">
-                      <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                        {row.label || 'Unknown'}
-                      </span>
+                      {row.label ? (
+                        <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                          {row.label}
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-full bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700">
+                          BELUM ADA
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

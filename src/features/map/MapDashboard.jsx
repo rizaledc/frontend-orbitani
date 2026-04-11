@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-draw';
-import { Plus, X, MagnifyingGlass, Farm, ChartLineUp, CloudSun, Polygon, List, CaretLeft } from '@phosphor-icons/react';
+import { Plus, X, MagnifyingGlass, Farm, ChartLineUp, CloudSun, Polygon, List, CaretLeft, Check } from '@phosphor-icons/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
@@ -24,6 +24,7 @@ const DrawControl = ({ isDrawingMode, setIsDrawingMode, onPolygonDrawn }) => {
         },
       });
       polygonDrawer.enable();
+      window.__l_draw_polygon = polygonDrawer;
     }
 
     const onDrawCreated = (e) => {
@@ -47,6 +48,7 @@ const DrawControl = ({ isDrawingMode, setIsDrawingMode, onPolygonDrawn }) => {
     return () => {
       if (polygonDrawer) polygonDrawer.disable();
       map.off(L.Draw.Event.CREATED, onDrawCreated);
+      delete window.__l_draw_polygon;
     };
   }, [map, isDrawingMode, setIsDrawingMode, onPolygonDrawn]);
 
@@ -74,14 +76,15 @@ const MapController = ({ selectedGeoJson }) => {
 const MapDashboard = () => {
   const { user } = useAuthStore();
   const role = user?.role || 'user';
-  const canDraw = role === 'superadmin' || role === 'admin';
+  // Mengizinkan semua role (termasuk user/petani) untuk menggambar poligon lahannya sendiri
+  const canDraw = true;
 
   const [lahanList, setLahanList] = useState([]);
   const [analyticsData, setAnalyticsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // UX States
-  const [isListMinimized, setIsListMinimized] = useState(false);
+  const [isListMinimized, setIsListMinimized] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   // States for Map & Drawing
@@ -188,10 +191,23 @@ const MapDashboard = () => {
         zoomControl={false}
         className="w-full h-full z-0"
       >
-        <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          attribution='Tiles &copy; Esri'
-        />
+        <LayersControl position="topright">
+          {/* Layer 1: Satelit (Default) */}
+          <LayersControl.BaseLayer checked name="Satelit Global">
+            <TileLayer
+              url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+              attribution='&copy; Google Maps'
+            />
+          </LayersControl.BaseLayer>
+
+          {/* Layer 2: OSMnx */}
+          <LayersControl.BaseLayer name="OSMnx">
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
 
         {canDraw && (
           <DrawControl
@@ -225,23 +241,45 @@ const MapDashboard = () => {
 
       {/* ─── FLOATING ACTION BUTTON (Draw Mode) ─── */}
       {canDraw && (
-        <button
-          onClick={() => {
-            if (isDrawingMode) setIsDrawingMode(false);
-            else {
-              setIsDrawingMode(true);
-              setIsListMinimized(true); // Auto-hide map list so map is visible for drawing
-            }
-          }}
-          className={`absolute bottom-6 right-6 md:right-8 z-[1000] w-[56px] h-[56px] rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 border ${
-            isDrawingMode 
-              ? 'bg-white text-red-500 border-red-200 shadow-red-500/20' 
-              : 'bg-white text-primary border-gray-100 hover:bg-gray-50'
-          }`}
-          title={isDrawingMode ? "Batal Menggambar" : "Tambah Lahan Polygon"}
-        >
-          {isDrawingMode ? <X size={24} weight="bold" /> : <Polygon size={24} weight="duotone" />}
-        </button>
+        <div className="absolute bottom-6 right-6 md:right-8 z-[1000] flex items-center gap-3">
+          {isDrawingMode ? (
+            <>
+              {/* Selesai / Simpan Button */}
+              <button
+                onClick={() => {
+                  if (window.__l_draw_polygon) {
+                    window.__l_draw_polygon.completeShape();
+                  }
+                }}
+                className="w-[56px] h-[56px] bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 border border-primary-200 hover:bg-primary-hover active:scale-90 transition-all"
+                title="Selesai & Simpan Poligon"
+              >
+                <Check size={24} weight="bold" /> 
+              </button>
+
+              {/* Batal Button */}
+              <button
+                onClick={() => setIsDrawingMode(false)}
+                className="w-[56px] h-[56px] bg-white text-red-500 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/10 border border-red-200 active:scale-90 transition-all hover:bg-red-50"
+                title="Batal Menggambar"
+              >
+                <X size={24} weight="bold" />
+              </button>
+            </>
+          ) : (
+            /* Tambah Lahan Button */
+            <button
+              onClick={() => {
+                setIsDrawingMode(true);
+                setIsListMinimized(true); // Auto-hide map list so map is visible for drawing
+              }}
+              className="w-[56px] h-[56px] bg-white text-primary border-gray-100 hover:bg-gray-50 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 border"
+              title="Tambah Lahan Polygon"
+            >
+              <Polygon size={24} weight="duotone" />
+            </button>
+          )}
+        </div>
       )}
 
       {/* Draw Instruction Toast */}
@@ -384,17 +422,19 @@ const MapDashboard = () => {
                     <h3 className="text-sm font-bold text-gray-900 tracking-tight">Tren Kesuburan (NPK)</h3>
                   </div>
                   <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={analyticsData.length ? analyticsData : [{ day: 'Sen', n: 40, p: 20, k: 30 }, { day: 'Sel', n: 42, p: 21, k: 32 }, { day: 'Rab', n: 45, p: 25, k: 30 }, { day: 'Kam', n: 48, p: 28, k: 35 }]}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', fontSize: '12px' }} />
-                        <Line type="monotone" dataKey="n" name="N" stroke="#1c4234" strokeWidth={3} dot={false} />
-                        <Line type="monotone" dataKey="p" name="P" stroke="#2ecc71" strokeWidth={3} dot={false} />
-                        <Line type="monotone" dataKey="k" name="K" stroke="#f59e0b" strokeWidth={3} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {isSlideOpen && (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={analyticsData.length ? analyticsData : [{ day: 'Sen', n: 40, p: 20, k: 30 }, { day: 'Sel', n: 42, p: 21, k: 32 }, { day: 'Rab', n: 45, p: 25, k: 30 }, { day: 'Kam', n: 48, p: 28, k: 35 }]}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', fontSize: '12px' }} />
+                          <Line type="monotone" dataKey="n" name="N" stroke="#1c4234" strokeWidth={3} dot={false} />
+                          <Line type="monotone" dataKey="p" name="P" stroke="#2ecc71" strokeWidth={3} dot={false} />
+                          <Line type="monotone" dataKey="k" name="K" stroke="#f59e0b" strokeWidth={3} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
                   </div>
                 </div>
 
@@ -405,15 +445,17 @@ const MapDashboard = () => {
                     <h3 className="text-sm font-bold text-gray-900 tracking-tight">Prediksi Curah Hujan</h3>
                   </div>
                   <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={[{ day: 'Sen', mm: 12 }, { day: 'Sel', mm: 5 }, { day: 'Rab', mm: 0 }, { day: 'Kam', mm: 35 }, { day: 'Jum', mm: 20 }]}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', fontSize: '12px' }} />
-                        <Line type="stepAfter" dataKey="mm" name="Hujan (mm)" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {isSlideOpen && (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={[{ day: 'Sen', mm: 12 }, { day: 'Sel', mm: 5 }, { day: 'Rab', mm: 0 }, { day: 'Kam', mm: 35 }, { day: 'Jum', mm: 20 }]}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', fontSize: '12px' }} />
+                          <Line type="stepAfter" dataKey="mm" name="Hujan (mm)" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
                   </div>
                 </div>
 

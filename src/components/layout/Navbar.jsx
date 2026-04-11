@@ -6,8 +6,6 @@ import {
   List,
   X,
   UserCircle,
-  Bell,
-  MagnifyingGlass,
   CaretDown,
   Trash,
 } from '@phosphor-icons/react';
@@ -16,9 +14,7 @@ import toast from 'react-hot-toast';
 
 const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
   const [showProfile, setShowProfile] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
-  const notifRef = useRef(null);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,9 +24,6 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowProfile(false);
-      }
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setShowNotifications(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -105,71 +98,6 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
 
       {/* ──── Right ──── */}
       <div className="flex items-center gap-2">
-        {/* Notification bell */}
-        <div className="relative" ref={notifRef}>
-          <button
-            id="btn-notifications"
-            onClick={() => setShowNotifications(!showNotifications)}
-            className={`relative p-2.5 rounded-xl transition-colors ${
-              showNotifications 
-                ? 'bg-primary-50 text-primary dark:bg-primary-900/30' 
-                : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400'
-            }`}
-            aria-label="Notifications"
-          >
-            <Bell size={20} weight={showNotifications ? "fill" : "regular"} />
-            {/* Dot indicator */}
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900" />
-          </button>
-
-          {/* Notification Dropdown */}
-          {showNotifications && (
-            <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 py-3 z-50 animate-fade-in origin-top-right">
-              <div className="px-4 pb-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                <h3 className="font-bold text-gray-900 dark:text-white">Notifikasi</h3>
-                <span className="text-xs font-semibold text-primary bg-primary-50 px-2 py-1 rounded-md">2 Baru</span>
-              </div>
-              <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                <div className="p-4 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center shrink-0">
-                      <Leaf size={16} className="text-primary" weight="fill" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900 dark:text-white font-medium leading-snug">
-                        AI mendeteksi anomali cuaca pada <span className="font-bold">Lahan Selatan</span>.
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">2 menit yang lalu</p>
-                    </div>
-                    <button className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all shrink-0" title="Hapus notifikasi">
-                      <Trash size={14} weight="bold" />
-                    </button>
-                  </div>
-                </div>
-                <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                      <UserCircle size={16} className="text-blue-500" weight="fill" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900 dark:text-white font-medium leading-snug">
-                        Tim Pusat mengirimkan pembaruan kebijakan platform.
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">1 jam yang lalu</p>
-                    </div>
-                    <button className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all shrink-0" title="Hapus notifikasi">
-                      <Trash size={14} weight="bold" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1 hidden sm:block" />
-
         {/* Profile dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button

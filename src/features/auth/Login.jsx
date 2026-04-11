@@ -49,7 +49,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex w-full bg-white dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen flex w-full bg-white dark:bg-gray-950 transition-colors duration-300 animate-fade-in">
 
       {/* ──── LEFT PANEL (Animated Hero) 50% ──── */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 items-center justify-center overflow-hidden">
@@ -186,7 +186,10 @@ const Login = () => {
         {/* Footer */}
         <div className="w-full max-w-md mx-auto mt-auto pt-8">
           <p className="text-center text-xs text-gray-400 dark:text-gray-600">
-            © 2026 Orbitani — Powered by AI & Satelit
+            © 2026 Orbitani Corp — Support by{' '}
+            <a href="https://kodinginaja.biz.id/" target="_blank" rel="noopener noreferrer" className="text-primary dark:text-primary-light hover:underline font-bold transition-colors">
+              Kodinginaja
+            </a>
           </p>
         </div>
       </div>
