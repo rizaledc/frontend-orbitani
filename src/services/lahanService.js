@@ -8,7 +8,7 @@ import api from './api';
 /** GET /api/lahan/ — Daftar seluruh lahan milik tenant */
 export const getAllLahan = async () => {
   const response = await api.get('/api/lahan/');
-  return response.data;
+  return response.data.data || [];
 };
 
 /** POST /api/lahan/ — Tambah lahan baru (GeoJSON Polygon) */
