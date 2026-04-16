@@ -31,3 +31,16 @@ export const getLahanAnalytics = async () => {
   const response = await api.get('/api/lahan/analytics');
   return response.data;
 };
+
+/** DELETE /api/lahan/{lahanId} — Hapus lahan */
+export const deleteLahan = async (lahanId) => {
+  const response = await api.delete(`/api/lahan/${lahanId}`);
+  return response.data;
+};
+
+/** PUT /api/lahan/{lahanId} — Update nama, keterangan lahan */
+export const updateLahan = async (lahanId, lahanData) => {
+  const response = await api.put(`/api/lahan/${lahanId}`, lahanData);
+  return response.data;
+};
+

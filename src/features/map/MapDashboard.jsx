@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-draw';
-import { Plus, X, MagnifyingGlass, Farm, ChartLineUp, CloudSun, Polygon, List, CaretLeft, Check } from '@phosphor-icons/react';
+import { Plus, X, MagnifyingGlass, Farm, ChartLineUp, CloudSun, Polygon, List, CaretLeft, Check,
+  CaretUp, CaretDown, CaretRight, MagnifyingGlassPlus, MagnifyingGlassMinus, Crosshair,
+  PencilSimple, Trash
+} from '@phosphor-icons/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
-import { getAllLahan, createLahan, getLahanData, getLahanAnalytics } from '../../services/lahanService';
+import { getAllLahan, createLahan, getLahanData, getLahanAnalytics, deleteLahan, updateLahan } from '../../services/lahanService';
 
-// --- Draw Controller (Programmatic Leaflet Draw) ---
 const DrawControl = ({ isDrawingMode, setIsDrawingMode, onPolygonDrawn }) => {
   const map = useMap();
 
@@ -55,6 +57,92 @@ const DrawControl = ({ isDrawingMode, setIsDrawingMode, onPolygonDrawn }) => {
   return null;
 };
 
+// --- Bridge: capture Leaflet map instance into external ref ---
+const MapNavRef = ({ mapRef }) => {
+  const map = useMap();
+  useEffect(() => { mapRef.current = map; }, [map, mapRef]);
+  return null;
+};
+
+// --- D-Pad Navigation Panel (Collapsible, 50% Transparent) ---
+const PAN_STEP = 120;
+const MapNavigationPanel = ({ mapRef, defaultCenter }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const pan = useCallback((dx, dy) => {
+    mapRef.current?.panBy([dx, dy], { animate: true });
+  }, [mapRef]);
+
+  const btn = 'w-9 h-9 flex items-center justify-center rounded-xl border border-white/40 bg-white/60 text-gray-700 hover:bg-white/80 hover:text-primary active:scale-95 transition-all shadow-sm backdrop-blur-sm';
+
+  return (
+    <div
+      id="map-nav-panel"
+      className="absolute bottom-24 right-6 md:right-8 z-[1000] flex flex-col items-end gap-1 select-none hidden sm:flex"
+    >
+      {/* Toggle Button — always visible */}
+      <button
+        id="map-nav-toggle"
+        onClick={() => setIsOpen((v) => !v)}
+        title={isOpen ? 'Sembunyikan Kontrol' : 'Tampilkan Kontrol Navigasi'}
+        aria-expanded={isOpen}
+        className="w-9 h-9 flex items-center justify-center rounded-xl border border-white/40 bg-white/50 text-gray-600 hover:bg-white/70 hover:text-primary active:scale-95 transition-all shadow-sm backdrop-blur-sm"
+      >
+        <Crosshair size={18} weight="bold" className={`transition-transform duration-200 ${isOpen ? 'text-primary rotate-45' : ''}`} />
+      </button>
+
+      {/* Collapsible Controls */}
+      <div
+        className={`flex flex-col items-center gap-1 transition-all duration-200 origin-bottom-right ${
+          isOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-90 pointer-events-none h-0 overflow-hidden'
+        }`}
+        role="group"
+        aria-label="Kontrol Navigasi Peta"
+      >
+        {/* Zoom */}
+        <div className="flex flex-col gap-1 mb-1">
+          <button id="map-zoom-in" aria-label="Zoom In" className={btn} onClick={() => mapRef.current?.zoomIn()}>
+            <MagnifyingGlassPlus size={18} weight="bold" />
+          </button>
+          <button id="map-zoom-out" aria-label="Zoom Out" className={btn} onClick={() => mapRef.current?.zoomOut()}>
+            <MagnifyingGlassMinus size={18} weight="bold" />
+          </button>
+        </div>
+
+        {/* D-Pad */}
+        <div className="grid grid-cols-3 gap-1">
+          <div />
+          <button id="map-pan-up" aria-label="Geser Atas" className={btn} onClick={() => pan(0, -PAN_STEP)}>
+            <CaretUp size={16} weight="bold" />
+          </button>
+          <div />
+
+          <button id="map-pan-left" aria-label="Geser Kiri" className={btn} onClick={() => pan(-PAN_STEP, 0)}>
+            <CaretLeft size={16} weight="bold" />
+          </button>
+          <button
+            id="map-reset-view" aria-label="Reset View" title="Kembali ke posisi awal"
+            className={`${btn} text-primary`}
+            onClick={() => mapRef.current?.setView(defaultCenter, 5, { animate: true })}
+          >
+            <Crosshair size={14} weight="bold" />
+          </button>
+          <button id="map-pan-right" aria-label="Geser Kanan" className={btn} onClick={() => pan(PAN_STEP, 0)}>
+            <CaretRight size={16} weight="bold" />
+          </button>
+
+          <div />
+          <button id="map-pan-down" aria-label="Geser Bawah" className={btn} onClick={() => pan(0, PAN_STEP)}>
+            <CaretDown size={16} weight="bold" />
+          </button>
+          <div />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // --- Map FlyTo Controller ---
 const MapController = ({ selectedGeoJson }) => {
   const map = useMap();
@@ -76,8 +164,11 @@ const MapController = ({ selectedGeoJson }) => {
 const MapDashboard = () => {
   const { user } = useAuthStore();
   const role = user?.role || 'user';
-  // Mengizinkan semua role (termasuk user/petani) untuk menggambar poligon lahannya sendiri
   const canDraw = true;
+
+  const mapRef = useRef(null);
+  const mapWrapperRef = useRef(null);
+  const DEFAULT_CENTER = [-2.5, 118.0];
 
   const [lahanList, setLahanList] = useState([]);
   const [analyticsData, setAnalyticsData] = useState([]);
@@ -91,7 +182,8 @@ const MapDashboard = () => {
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [drawnGeoJson, setDrawnGeoJson] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '' });
+  const [formData, setFormData] = useState({ nama: '', keterangan: '' });
+  const [editTarget, setEditTarget] = useState(null); // lahan being edited (null = create mode)
 
   // States for Slide-over
   const [selectedLahan, setSelectedLahan] = useState(null);
@@ -102,6 +194,27 @@ const MapDashboard = () => {
   useEffect(() => {
     fetchLahan();
     fetchAnalyticsData();
+  }, []);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const wrapper = mapWrapperRef.current;
+      if (!wrapper || !wrapper.contains(document.activeElement)) return;
+      if (!mapRef.current) return;
+      const KEY_MAP = {
+        ArrowUp:    () => mapRef.current.panBy([0, -120]),
+        ArrowDown:  () => mapRef.current.panBy([0, 120]),
+        ArrowLeft:  () => mapRef.current.panBy([-120, 0]),
+        ArrowRight: () => mapRef.current.panBy([120, 0]),
+        '+': () => mapRef.current.zoomIn(),
+        '=': () => mapRef.current.zoomIn(),
+        '-': () => mapRef.current.zoomOut(),
+      };
+      if (KEY_MAP[e.key]) { e.preventDefault(); KEY_MAP[e.key](); }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const fetchLahan = async () => {
@@ -129,22 +242,67 @@ const MapDashboard = () => {
     setShowSaveModal(true);
   };
 
-  const submitNewLahan = async (e) => {
+  // ── Create or Update Lahan ──
+  const submitLahan = async (e) => {
     e.preventDefault();
+    if (!formData.nama.trim()) {
+      toast.error('Nama lahan wajib diisi.');
+      return;
+    }
+
     try {
-      await createLahan({
-        name: formData.name,
-        description: formData.description,
-        geojson: drawnGeoJson,
-      });
-      toast.success('Lahan berhasil disimpan.');
-      setShowSaveModal(false);
-      setFormData({ name: '', description: '' });
-      setDrawnGeoJson(null);
+      if (editTarget) {
+        // PUT — update existing
+        await updateLahan(editTarget.id, {
+          nama: formData.nama,
+          keterangan: formData.keterangan,
+        });
+        toast.success('Lahan berhasil diperbarui.');
+      } else {
+        // POST — create new (koordinat dari GeoJSON yang digambar)
+        if (!drawnGeoJson) { toast.error('Gambar poligon terlebih dahulu.'); return; }
+        await createLahan({
+          nama: formData.nama,
+          keterangan: formData.keterangan,
+          koordinat: drawnGeoJson.geometry?.coordinates,
+        });
+        toast.success('Lahan berhasil disimpan.');
+      }
+      closeModals();
       fetchLahan();
     } catch (err) {
-      console.error(err);
+      const detail = err.response?.data?.detail;
+      const msg = Array.isArray(detail)
+        ? detail.map((d) => d.msg || d.message).join('; ')
+        : (typeof detail === 'string' ? detail : 'Gagal menyimpan lahan.');
+      toast.error(msg);
     }
+  };
+
+  // ── Delete with Optimistic UI ──
+  const handleDeleteLahan = async (e, lahan) => {
+    e.stopPropagation();
+    if (!window.confirm(`Hapus lahan "${lahan.name || lahan.nama}"?`)) return;
+    // Optimistic remove
+    setLahanList((prev) => prev.filter((l) => l.id !== lahan.id));
+    if (selectedLahan?.id === lahan.id) setIsSlideOpen(false);
+    try {
+      await deleteLahan(lahan.id);
+      toast.success('Lahan berhasil dihapus.');
+    } catch (err) {
+      // Rollback on failure
+      toast.error('Gagal menghapus lahan. Halaman akan di-refresh.');
+      fetchLahan();
+    }
+  };
+
+  // ── Edit: prefill form & open modal ──
+  const handleEditLahan = (e, lahan) => {
+    e.stopPropagation();
+    setEditTarget(lahan);
+    setFormData({ nama: lahan.name || lahan.nama || '', keterangan: lahan.description || lahan.keterangan || '' });
+    setDrawnGeoJson(null);
+    setShowSaveModal(true);
   };
 
   const handleLahanClick = async (lahan) => {
@@ -169,6 +327,8 @@ const MapDashboard = () => {
     setShowSaveModal(false);
     setDrawnGeoJson(null);
     setIsDrawingMode(false);
+    setEditTarget(null);
+    setFormData({ nama: '', keterangan: '' });
   };
 
   const filteredLahan = lahanList.filter(l => 
@@ -179,7 +339,12 @@ const MapDashboard = () => {
   const indonesiaBounds = [[-11.0, 94.0], [6.0, 141.0]];
 
   return (
-    <div className="relative h-full w-full bg-gray-900 overflow-hidden">
+    <div
+      ref={mapWrapperRef}
+      tabIndex={0}
+      className="relative h-full w-full bg-gray-900 overflow-hidden outline-none"
+      aria-label="Peta Eksplorasi Lahan"
+    >
       
       {/* ─── KANVAS PETA FULLSCREEN ─── */}
       <MapContainer
@@ -217,6 +382,7 @@ const MapDashboard = () => {
           />
         )}
 
+        <MapNavRef mapRef={mapRef} />
         <MapController selectedGeoJson={selectedLahan?.geojson} />
 
         {lahanList.map((lahan) => {
@@ -238,6 +404,9 @@ const MapDashboard = () => {
           );
         })}
       </MapContainer>
+
+      {/* ─── D-PAD NAVIGATION PANEL ─── */}
+      <MapNavigationPanel mapRef={mapRef} defaultCenter={DEFAULT_CENTER} />
 
       {/* ─── FLOATING ACTION BUTTON (Draw Mode) ─── */}
       {canDraw && (
@@ -358,8 +527,25 @@ const MapDashboard = () => {
                         <Farm size={20} className={selectedLahan?.id === lahan.id ? 'text-primary' : 'text-gray-600'} weight="duotone" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-gray-900 text-sm truncate">{lahan.name}</h3>
-                        <p className="text-[11px] text-gray-500 truncate mt-0.5">{lahan.description}</p>
+                        <h3 className="font-bold text-gray-900 text-sm truncate">{lahan.name || lahan.nama}</h3>
+                        <p className="text-[11px] text-gray-500 truncate mt-0.5">{lahan.description || lahan.keterangan || '-'}</p>
+                      </div>
+                      {/* Action icons */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={(e) => handleEditLahan(e, lahan)}
+                          title="Edit Lahan"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary-50 transition-colors"
+                        >
+                          <PencilSimple size={14} weight="bold" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteLahan(e, lahan)}
+                          title="Hapus Lahan"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash size={14} weight="bold" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -465,38 +651,47 @@ const MapDashboard = () => {
         </div>
       </div>
 
-      {/* ─── MODAL SAVE LAHAN ─── */}
+      {/* ─── MODAL SAVE / EDIT LAHAN ─── */}
       {showSaveModal && (
         <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden translate-y-0 animate-fade-in border border-gray-100">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
-              <h3 className="font-bold text-gray-900 text-lg tracking-tight">Simpan Lahan Baru</h3>
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in border border-gray-100">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="font-bold text-gray-900 text-lg tracking-tight">
+                {editTarget ? 'Edit Lahan' : 'Simpan Lahan Baru'}
+              </h3>
               <button onClick={closeModals} className="text-gray-400 hover:text-gray-900 transition-colors">
                 <X size={20} weight="bold" />
               </button>
             </div>
-            <form onSubmit={submitNewLahan} className="p-5 space-y-4">
+            <form onSubmit={submitLahan} className="p-5 space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Nama Lahan</label>
+                <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
+                  Nama Lahan <span className="text-red-400">*</span>
+                </label>
                 <input
                   type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.nama}
+                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
                   placeholder="Mis. Lahan Utara 01"
                   className="w-full px-4 py-2.5 bg-white border border-gray-200 focus:border-primary rounded-xl text-sm outline-none transition-all shadow-sm"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Keterangan / Deskripsi</label>
+                <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Keterangan</label>
                 <textarea
                   rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  value={formData.keterangan}
+                  onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
                   placeholder="Catatan kecil untuk lahan ini..."
                   className="w-full px-4 py-2.5 bg-white border border-gray-200 focus:border-primary rounded-xl text-sm outline-none transition-all resize-none shadow-sm"
                 />
               </div>
+              {!editTarget && (
+                <p className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                  Koordinat poligon yang digambar akan disimpan otomatis.
+                </p>
+              )}
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
@@ -509,7 +704,7 @@ const MapDashboard = () => {
                   type="submit"
                   className="px-6 py-2 bg-primary text-white text-sm font-bold hover:bg-primary-hover rounded-xl shadow-sm hover:shadow-md transition-all"
                 >
-                  Simpan Poligon
+                  {editTarget ? 'Simpan Perubahan' : 'Simpan Poligon'}
                 </button>
               </div>
             </form>
