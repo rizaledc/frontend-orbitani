@@ -34,3 +34,15 @@ export const deleteUser = async (userId) => {
   const response = await api.delete(`/api/users/${userId}`);
   return response.data;
 };
+
+/** PATCH /api/users/me — Update profil diri sendiri */
+export const updateMyProfile = async (profileData) => {
+  const response = await api.patch('/api/users/me', profileData);
+  return response.data;
+};
+
+/** PUT /api/auth/update-password — Ganti password */
+export const updatePassword = async (passwordData) => {
+  const response = await api.put('/api/auth/update-password', passwordData);
+  return response.data;
+};

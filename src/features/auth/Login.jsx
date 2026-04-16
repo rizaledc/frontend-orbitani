@@ -4,6 +4,7 @@ import { Leaf, User, Lock, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast';
 import { loginUser } from '../../services/authService';
 import useAuthStore from '../../store/authStore';
+import api from '../../services/api';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -21,8 +22,14 @@ const Login = () => {
       const data = await loginUser({ username, password });
       console.log("Response Backend:", data);
 
+      // Save token first so Axios interceptor immediately uses it for the next request
       localStorage.setItem('orbitani_token', data.access_token);
-      login(data.user, data.access_token);
+      
+      // IMMEDIATELY fetch user profile via the /me endpoint
+      const profile = await api.get('/api/auth/me');
+      
+      // Store both profile data and token into zustand memory
+      login(profile.data, data.access_token);
 
       console.log("Login Berhasil, Token Tersimpan!");
       toast.success('Login berhasil!');

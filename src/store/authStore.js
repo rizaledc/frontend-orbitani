@@ -24,6 +24,11 @@ const useAuthStore = create((set) => ({
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
 
+  /** Merge partial user data into store (used after profile update) */
+  updateUser: (partialData) => set((state) => ({
+    user: state.user ? { ...state.user, ...partialData } : partialData,
+  })),
+
   initializeAuth: async () => {
     const token = localStorage.getItem('orbitani_token');
     if (!token) {

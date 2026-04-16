@@ -50,13 +50,37 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
 
   const pageTitle = PAGE_TITLES[location.pathname] || 'Dashboard';
 
-  /* Avatar initials */
-  const initials = (user?.username || 'U')
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  /* Role-based display name */
+  const getDisplayName = () => {
+    if (!user) return '';
+    switch (user.role) {
+      case 'superadmin':
+        return user.name || 'Orbitani Superadmin';
+      case 'admin':
+        return user.organization_name || user.name || user.username || '';
+      default:
+        return user.name || user.username || '';
+    }
+  };
+
+  const getDisplayRole = () => {
+    if (!user) return '';
+    return user.role?.toUpperCase() || '';
+  };
+
+  const displayName = getDisplayName();
+  const displayRole = getDisplayRole();
+
+  /* Avatar initials — derived from display name */
+  const initials = displayName
+    ? displayName
+        .split(' ')
+        .filter(Boolean)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : '';
 
   return (
     <header
@@ -107,18 +131,27 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
             "
           >
             {/* Avatar circle */}
-            <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center text-xs font-bold">
-              {initials}
+            <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center text-xs font-bold overflow-hidden">
+              {!user ? <div className="w-full h-full bg-gray-200 dark:bg-gray-700 animate-pulse" /> : initials}
             </div>
 
             {/* Name + role — desktop */}
             <div className="hidden md:block text-left">
-              <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                {user?.username || 'Guest'}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 capitalize leading-tight">
-                {user?.role || 'User'}
-              </p>
+              {!user ? (
+                <div className="animate-pulse space-y-1.5 flex flex-col justify-center h-full">
+                  <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
+                    {displayName}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">
+                    {displayRole}
+                  </p>
+                </>
+              )}
             </div>
 
             <CaretDown
@@ -142,12 +175,21 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
               {/* Header */}
               <div className="px-4 pt-4 pb-4 border-b border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-sm font-black">
-                    {initials}
+                  <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-sm font-black overflow-hidden">
+                    {!user ? <div className="w-full h-full bg-gray-200 dark:bg-gray-700 animate-pulse" /> : initials}
                   </div>
-                  <div>
-                    <p className="text-base font-black text-gray-900 dark:text-white leading-tight">{user?.username || 'Guest'}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 capitalize mt-0.5">{user?.role || 'user'}</p>
+                  <div className="flex-1">
+                    {!user ? (
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-5 w-3/4 bg-gray-200 dark:bg-gray-700 rounded" />
+                        <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded" />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-base font-black text-gray-900 dark:text-white leading-tight">{displayName}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{displayRole}</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
