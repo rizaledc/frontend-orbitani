@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap, LayersControl, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-draw';
 import { X, MagnifyingGlass, Farm, ChartLineUp, CloudSun, Polygon, List, CaretLeft, Check,
   CaretUp, CaretDown, CaretRight, MagnifyingGlassPlus, MagnifyingGlassMinus, Crosshair,
-  PencilSimple, Trash, Plant, ArrowClockwise
+  PencilSimple, Trash, Plant, ArrowClockwise, Thermometer, Drop, Flask, Leaf
 } from '@phosphor-icons/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
@@ -460,6 +460,21 @@ const MapDashboard = () => {
             />
           );
         })}
+
+        {/* ── Render Sampling Points if available ── */}
+        {selectedLahan?.titik_sampling && selectedLahan.titik_sampling.map((pt, idx) => {
+          // pt can be [lon, lat] or {lat, lon}. We need [lat, lon] for Leaflet
+          const lat = Array.isArray(pt) ? pt[1] : pt.lat;
+          const lon = Array.isArray(pt) ? pt[0] : pt.lon;
+          return (
+            <CircleMarker
+              key={`sp-${idx}`}
+              center={[lat, lon]}
+              radius={4}
+              pathOptions={{ color: '#f59e0b', fillColor: '#facc15', fillOpacity: 0.9, weight: 1.5 }}
+            />
+          );
+        })}
       </MapContainer>
 
       {/* ─── D-PAD NAVIGATION PANEL ─── */}
@@ -728,6 +743,53 @@ const MapDashboard = () => {
                           {formatDate(selectedLahan.terakhir_dianalisis)}
                         </span>
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Kondisi Lahan (Sensor Satelit) ── */}
+                {selectedLahan?.rata_rata_fitur && (
+                  <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Kondisi Biofisik (Rata-rata)</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                          <Thermometer size={16} weight="bold" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-500 font-semibold">Suhu Udara</p>
+                          <p className="text-sm font-bold text-gray-900">{Number(selectedLahan.rata_rata_fitur.temperature || 0).toFixed(1)}°C</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600 shrink-0">
+                          <Drop size={16} weight="bold" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-500 font-semibold">Kelembapan</p>
+                          <p className="text-sm font-bold text-gray-900">{Number(selectedLahan.rata_rata_fitur.humidity || 0).toFixed(1)}%</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                          <Leaf size={16} weight="bold" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-500 font-semibold">pH Tanah</p>
+                          <p className="text-sm font-bold text-gray-900">{Number(selectedLahan.rata_rata_fitur.ph || 0).toFixed(1)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                          <Flask size={16} weight="bold" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-500 font-semibold">Unsur NPK (avg)</p>
+                          <p className="text-sm font-bold text-gray-900">
+                            {Number((selectedLahan.rata_rata_fitur.n + selectedLahan.rata_rata_fitur.p + selectedLahan.rata_rata_fitur.k) / 3 || 0).toFixed(1)} mg/kg
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
