@@ -18,6 +18,7 @@ import UserProfile from './features/profile/UserProfile';
 import HumanChat from './features/chat/HumanChat';
 import MainLayout from './components/layout/MainLayout';
 import NotFound from './features/NotFound';
+import OrbitaniLoader from './components/OrbitaniLoader';
 
 /* Helper to get role safely */
 const getUserRole = () => {
@@ -33,8 +34,9 @@ const getUserRole = () => {
 
 /* Loading fallback component */
 const RouteSuspense = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 absolute inset-0 z-[99999]">
-    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+  <div className="min-h-screen flex flex-col gap-5 items-center justify-center bg-gray-50 dark:bg-gray-900 absolute inset-0 z-[99999]">
+    <OrbitaniLoader size="lg" />
+    <p className="text-sm font-semibold text-gray-400 tracking-wide animate-pulse">Memuat Orbitani...</p>
   </div>
 );
 

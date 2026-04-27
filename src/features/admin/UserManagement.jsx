@@ -7,26 +7,27 @@ import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
 import { getUsers, getUserStats, updateUserRole, deleteUser } from '../../services/userService';
 import { registerUser } from '../../services/authService';
+import OrbitaniLoader from '../../components/OrbitaniLoader';
 
 /* ── Badge Renderer ── */
 const RoleBadge = ({ role }) => {
   const r = (role || 'user').toLowerCase();
   if (r === 'superadmin') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-black bg-purple-50 text-purple-700 border border-purple-200">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
         <ShieldStar size={14} weight="fill" /> Superadmin
       </span>
     );
   }
   if (r === 'admin') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-black bg-amber-50 text-amber-700 border border-amber-200">
         <ShieldChevron size={14} weight="fill" /> Admin
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-black bg-gray-100 text-gray-600 border border-gray-200">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-black bg-gray-100 text-gray-500 border border-gray-200">
       <UserIcon size={14} weight="fill" /> User
     </span>
   );
@@ -93,14 +94,23 @@ const UserManagement = () => {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    const targetId = deleteTarget.id;
+    const targetUsername = deleteTarget.username;
+    // Optimistic UI: remove row immediately
+    setUsers((prev) => prev.filter((u) => u.id !== targetId));
+    setDeleteTarget(null);
     try {
-      await deleteUser(deleteTarget.id);
-      toast.success('Pengguna berhasil dihapus dari sistem.');
-      setUsers(users.filter(u => u.id !== deleteTarget.id));
+      await deleteUser(targetId);
+      toast.success(`Pengguna "${targetUsername}" berhasil dihapus.`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Gagal menghapus pengguna.');
-    } finally {
-      setDeleteTarget(null);
+      const status = err.response?.status;
+      if (status === 403) {
+        toast.error('Aksi ditolak: Anda tidak dapat menghapus akun Anda sendiri.');
+      } else {
+        toast.error(err.response?.data?.detail || 'Gagal menghapus pengguna.');
+      }
+      // Rollback: refetch the list
+      fetchData();
     }
   };
 
@@ -204,7 +214,14 @@ const UserManagement = () => {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+                <tr>
+                  <td colSpan="5" className="py-16">
+                    <div className="flex flex-col items-center gap-3">
+                      <OrbitaniLoader size="md" />
+                      <p className="text-xs font-semibold text-gray-400">Memuat pengguna...</p>
+                    </div>
+                  </td>
+                </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="px-6 py-16 text-center text-gray-400">
@@ -341,8 +358,8 @@ const UserManagement = () => {
                 <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl">
                   Batal
                 </button>
-                <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-primary text-white text-sm font-bold hover:bg-primary-hover rounded-xl shadow-sm transition-all disabled:opacity-50">
-                  {isSubmitting ? 'Mendaftarkan...' : 'Daftarkan'}
+                <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-primary text-white text-sm font-bold hover:bg-primary-hover rounded-xl shadow-sm transition-all disabled:opacity-50 min-w-[120px] flex items-center justify-center">
+                  {isSubmitting ? <OrbitaniLoader size="sm" /> : 'Daftarkan'}
                 </button>
               </div>
             </form>

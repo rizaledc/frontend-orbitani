@@ -5,9 +5,17 @@ import api from './api';
  * Endpoints: /api/lahan/*
  */
 
-/** GET /api/lahan/ — Daftar seluruh lahan milik tenant */
+/**
+ * GET /api/lahan/ — Daftar seluruh lahan milik tenant.
+ *
+ * Response unwrapping chain:
+ *   axios:   response.data          → { status: "success", data: [...] }
+ *   service: response.data.data     → [ ...array lahan... ]   ← this is what the store receives
+ */
 export const getAllLahan = async () => {
   const response = await api.get('/api/lahan/');
+  // response.data      = the parsed JSON body   { status, data: [...] }
+  // response.data.data = the actual lahan array  [...]
   return response.data.data || [];
 };
 
@@ -41,6 +49,17 @@ export const deleteLahan = async (lahanId) => {
 /** PUT /api/lahan/{lahanId} — Update nama, keterangan lahan */
 export const updateLahan = async (lahanId, lahanData) => {
   const response = await api.put(`/api/lahan/${lahanId}`, lahanData);
+  return response.data;
+};
+
+/**
+ * POST /api/lahan/{lahanId}/analyze — Trigger spatial AI analysis (polygon-based).
+ * Generates 10 random points inside the polygon, runs the ML recommendation model,
+ * and returns the updated LahanOut with `hasil_rekomendasi` and `terakhir_dianalisis`.
+ * Timeout set to 90s — ML + Gemini pipeline can be slow.
+ */
+export const analyzeLahanSpatial = async (lahanId) => {
+  const response = await api.post(`/api/lahan/${lahanId}/analyze`, {}, { timeout: 90000 });
   return response.data;
 };
 

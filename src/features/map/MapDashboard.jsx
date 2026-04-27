@@ -2,14 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-draw';
-import { Plus, X, MagnifyingGlass, Farm, ChartLineUp, CloudSun, Polygon, List, CaretLeft, Check,
+import { X, MagnifyingGlass, Farm, ChartLineUp, CloudSun, Polygon, List, CaretLeft, Check,
   CaretUp, CaretDown, CaretRight, MagnifyingGlassPlus, MagnifyingGlassMinus, Crosshair,
-  PencilSimple, Trash
+  PencilSimple, Trash, Plant, ArrowClockwise
 } from '@phosphor-icons/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
-import { getAllLahan, createLahan, getLahanData, getLahanAnalytics, deleteLahan, updateLahan } from '../../services/lahanService';
+import useLahanStore from '../../store/useLahanStore';
+import { createLahan, getLahanData, getLahanAnalytics, deleteLahan, updateLahan } from '../../services/lahanService';
+import OrbitaniLoader from '../../components/OrbitaniLoader';
 
 const DrawControl = ({ isDrawingMode, setIsDrawingMode, onPolygonDrawn }) => {
   const map = useMap();
@@ -161,18 +163,32 @@ const MapController = ({ selectedGeoJson }) => {
   return null;
 };
 
+/** Format ISO timestamp → "27 Apr 2026, 13:00" */
+const formatDate = (isoString) => {
+  if (!isoString) return '-';
+  try {
+    return new Date(isoString).toLocaleString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+  } catch {
+    return isoString;
+  }
+};
+
 const MapDashboard = () => {
   const { user } = useAuthStore();
   const role = user?.role || 'user';
   const canDraw = true;
 
+  // ── Lahan Store ──
+  const { lahanList, isLoading, fetchLahan, setLahanList, analyzeLahan, analyzingId } = useLahanStore();
+
   const mapRef = useRef(null);
   const mapWrapperRef = useRef(null);
   const DEFAULT_CENTER = [-2.5, 118.0];
 
-  const [lahanList, setLahanList] = useState([]);
   const [analyticsData, setAnalyticsData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // UX States
   const [isListMinimized, setIsListMinimized] = useState(true);
@@ -184,6 +200,7 @@ const MapDashboard = () => {
   const [drawnGeoJson, setDrawnGeoJson] = useState(null);
   const [formData, setFormData] = useState({ nama: '', keterangan: '' });
   const [editTarget, setEditTarget] = useState(null); // lahan being edited (null = create mode)
+  const [isSaving, setIsSaving] = useState(false);
 
   // States for Slide-over
   const [selectedLahan, setSelectedLahan] = useState(null);
@@ -191,10 +208,8 @@ const MapDashboard = () => {
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [lahanDetail, setLahanDetail] = useState(null);
 
-  useEffect(() => {
-    fetchLahan();
-    fetchAnalyticsData();
-  }, []);
+  // NOTE: init effect is placed AFTER fetchAnalyticsData is defined (see below)
+  //       to avoid capturing an undefined reference in the closure.
 
   // Keyboard navigation
   useEffect(() => {
@@ -217,14 +232,17 @@ const MapDashboard = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const fetchLahan = async () => {
-    try {
-      const data = await getAllLahan();
-      setLahanList(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+  /**
+   * handleAnalyzeLahan — Triggers the AI spatial analysis for the selected lahan.
+   * On success the store updates lahanList optimistically; we also sync the
+   * local selectedLahan reference so the slide-over rerenders immediately.
+   */
+  const handleAnalyzeLahan = async () => {
+    if (!selectedLahan) return;
+    const updated = await analyzeLahan(selectedLahan.id);
+    if (updated) {
+      // Keep the slide-over in sync with the fresh server object
+      setSelectedLahan((prev) => ({ ...prev, ...updated }));
     }
   };
 
@@ -237,6 +255,16 @@ const MapDashboard = () => {
     }
   };
 
+  // ── Initial data load ──
+  // Placed here (after fetchAnalyticsData) so both const-arrow functions are
+  // defined before the closure runs — avoids "not a function" TypeError.
+  // fetchLahan is a stable Zustand action so listing it as a dep is safe.
+  useEffect(() => {
+    fetchLahan();
+    fetchAnalyticsData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchLahan]);
+
   const handlePolygonDrawn = (geojson) => {
     setDrawnGeoJson(geojson);
     setShowSaveModal(true);
@@ -245,22 +273,22 @@ const MapDashboard = () => {
   // ── Create or Update Lahan ──
   const submitLahan = async (e) => {
     e.preventDefault();
+    if (isSaving) return;
     if (!formData.nama.trim()) {
       toast.error('Nama lahan wajib diisi.');
       return;
     }
 
+    setIsSaving(true);
     try {
       if (editTarget) {
-        // PUT — update existing
         await updateLahan(editTarget.id, {
           nama: formData.nama,
           keterangan: formData.keterangan,
         });
         toast.success('Lahan berhasil diperbarui.');
       } else {
-        // POST — create new (koordinat dari GeoJSON yang digambar)
-        if (!drawnGeoJson) { toast.error('Gambar poligon terlebih dahulu.'); return; }
+        if (!drawnGeoJson) { toast.error('Gambar poligon terlebih dahulu.'); setIsSaving(false); return; }
         await createLahan({
           nama: formData.nama,
           keterangan: formData.keterangan,
@@ -276,6 +304,8 @@ const MapDashboard = () => {
         ? detail.map((d) => d.msg || d.message).join('; ')
         : (typeof detail === 'string' ? detail : 'Gagal menyimpan lahan.');
       toast.error(msg);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -283,8 +313,8 @@ const MapDashboard = () => {
   const handleDeleteLahan = async (e, lahan) => {
     e.stopPropagation();
     if (!window.confirm(`Hapus lahan "${lahan.name || lahan.nama}"?`)) return;
-    // Optimistic remove
-    setLahanList((prev) => prev.filter((l) => l.id !== lahan.id));
+    // Optimistic remove via store setter
+    setLahanList(lahanList.filter((l) => l.id !== lahan.id));
     if (selectedLahan?.id === lahan.id) setIsSlideOpen(false);
     try {
       await deleteLahan(lahan.id);
@@ -331,9 +361,12 @@ const MapDashboard = () => {
     setFormData({ nama: '', keterangan: '' });
   };
 
-  const filteredLahan = lahanList.filter(l => 
-    l.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLahan = lahanList.filter((l) => {
+    // Backend returns `nama` (Indonesian field), with `name` as a possible alias.
+    // Always fall back through both to avoid returning false on every item.
+    const lahanName = l.name || l.nama || '';
+    return lahanName.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   // Bounding box: Sabang → Merauke
   const indonesiaBounds = [[-11.0, 94.0], [6.0, 141.0]];
@@ -503,9 +536,10 @@ const MapDashboard = () => {
 
             <div className="flex-1 overflow-y-auto p-2 custom-scrollbar bg-white">
               {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="m-2 h-16 rounded-xl border border-gray-100 skeleton-shimmer" />
-                ))
+                <div className="flex flex-col items-center justify-center p-10 gap-3">
+                  <OrbitaniLoader size="md" />
+                  <p className="text-[11px] font-semibold text-gray-400">Memuat lahan...</p>
+                </div>
               ) : filteredLahan.length === 0 ? (
                 <div className="text-center p-8 text-gray-400">
                   <Farm size={32} className="mx-auto mb-2 opacity-50" weight="duotone" />
@@ -565,7 +599,7 @@ const MapDashboard = () => {
         <div className="h-full flex flex-col bg-white">
           <div className="p-5 border-b border-gray-100 flex items-center justify-between shrink-0">
             <div>
-              <h2 className="text-lg font-bold text-gray-900 truncate pr-4">{selectedLahan?.name || 'Detail Lahan'}</h2>
+              <h2 className="text-lg font-bold text-gray-900 truncate pr-4">{selectedLahan?.name || selectedLahan?.nama || 'Detail Lahan'}</h2>
               <span className="text-xs text-gray-500 font-mono">ID: {selectedLahan?.id}</span>
             </div>
             <button
@@ -600,6 +634,79 @@ const MapDashboard = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* ── Analisis Tanaman (AI) Button ── */}
+                {(() => {
+                  const isThisAnalyzing = analyzingId === selectedLahan?.id;
+                  const hasResult = Array.isArray(selectedLahan?.hasil_rekomendasi) && selectedLahan.hasil_rekomendasi.length > 0;
+                  return (
+                    <button
+                      id="btn-analyze-lahan"
+                      onClick={handleAnalyzeLahan}
+                      disabled={isThisAnalyzing || !!analyzingId}
+                      className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all
+                        bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98]
+                        disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                    >
+                      {isThisAnalyzing ? (
+                        <>
+                          <OrbitaniLoader size="sm" />
+                          <span>Menganalisis Lahan...</span>
+                        </>
+                      ) : (
+                        <>
+                          {hasResult
+                            ? <ArrowClockwise size={16} weight="bold" />
+                            : <Plant size={16} weight="duotone" />}
+                          <span>{hasResult ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
+
+                {/* ── Hasil Rekomendasi Card ── */}
+                {Array.isArray(selectedLahan?.hasil_rekomendasi) && selectedLahan.hasil_rekomendasi.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                    {/* Card Header */}
+                    <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
+                      <Plant size={16} className="text-emerald-600" weight="duotone" />
+                      <h3 className="text-sm font-bold text-gray-900 tracking-tight">Rekomendasi Tanaman AI</h3>
+                    </div>
+
+                    {/* Rekomendasi List */}
+                    <ul className="divide-y divide-gray-50">
+                      {selectedLahan.hasil_rekomendasi.map((item, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Rank indicator */}
+                            <span className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <span className="text-sm font-bold text-gray-900">{item.tanaman}</span>
+                          </div>
+                          {/* Percentage badge */}
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 tracking-wide">
+                            {item.persentase}%
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* Footer: Last analyzed timestamp */}
+                    <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/60">
+                      <p className="text-[11px] text-gray-400 font-medium">
+                        Terakhir dianalisis:{' '}
+                        <span className="text-gray-500 font-semibold">
+                          {formatDate(selectedLahan.terakhir_dianalisis)}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Chart 1: NPK Trends */}
                 <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
@@ -702,9 +809,14 @@ const MapDashboard = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-primary text-white text-sm font-bold hover:bg-primary-hover rounded-xl shadow-sm hover:shadow-md transition-all"
+                  disabled={isSaving}
+                  className="px-6 py-2 bg-primary text-white text-sm font-bold hover:bg-primary-hover rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed min-w-[140px] flex items-center justify-center"
                 >
-                  {editTarget ? 'Simpan Perubahan' : 'Simpan Poligon'}
+                  {isSaving ? (
+                    <OrbitaniLoader size="sm" />
+                  ) : (
+                    editTarget ? 'Simpan Perubahan' : 'Simpan Poligon'
+                  )}
                 </button>
               </div>
             </form>
