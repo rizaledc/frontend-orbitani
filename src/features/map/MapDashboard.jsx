@@ -344,7 +344,19 @@ const MapDashboard = () => {
       setIsListMinimized(true);
     }
     try {
-      const detail = await getLahanData(lahan.id);
+      // Calculate polygon centroid to trigger GEE live fetch on the backend
+      const spatialData = lahan.geojson || lahan.koordinat;
+      let params = {};
+      if (spatialData) {
+        try {
+          const center = L.geoJSON(spatialData).getBounds().getCenter();
+          params = { lat: center.lat, lon: center.lng };
+        } catch (e) {
+          console.warn("Gagal menghitung centroid untuk GEE", e);
+        }
+      }
+
+      const detail = await getLahanData(lahan.id, params);
       setLahanDetail(detail);
     } catch (err) {
       console.error(err);
