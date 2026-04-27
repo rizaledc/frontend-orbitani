@@ -60,6 +60,7 @@ export const updateLahan = async (lahanId, lahanData) => {
  */
 export const analyzeLahanSpatial = async (lahanId) => {
   const response = await api.post(`/api/lahan/${lahanId}/analyze`, {}, { timeout: 90000 });
-  return response.data;
+  // Unwrap backend envelope if it exists: { status: "success", data: {...lahan} }
+  return response.data?.data || response.data;
 };
 
