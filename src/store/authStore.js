@@ -12,7 +12,7 @@ const useAuthStore = create((set) => ({
 
   login: (userData, token) => {
     localStorage.setItem('orbitani_token', token);
-    set({ user: userData, token, isAuthenticated: true, error: null });
+    set({ user: userData, token, isAuthenticated: true, isLoading: false, error: null });
   },
 
   logout: () => {
