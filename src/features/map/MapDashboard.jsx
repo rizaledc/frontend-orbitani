@@ -416,14 +416,17 @@ const MapDashboard = () => {
         )}
 
         <MapNavRef mapRef={mapRef} />
-        <MapController selectedGeoJson={selectedLahan?.geojson} />
+        {/* FlyTo uses geojson || koordinat — backend sends data under koordinat */}
+        <MapController selectedGeoJson={selectedLahan?.geojson || selectedLahan?.koordinat} />
 
         {lahanList.map((lahan) => {
-          if (!lahan.geojson) return null;
+          // Support both field names: geojson (legacy) and koordinat (current backend)
+          const spatialData = lahan.geojson || lahan.koordinat;
+          if (!spatialData) return null;
           return (
             <GeoJSON
               key={lahan.id}
-              data={lahan.geojson}
+              data={spatialData}
               pathOptions={{
                 fillColor: '#2ecc71',
                 color: '#1c4234',
