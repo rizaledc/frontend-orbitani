@@ -30,13 +30,6 @@ const useLahanStore = create((set, get) => ({
       //   service response.data.data → the plain lahan array
       // So `data` here is already the raw array — no extra .data needed.
       const data = await getAllLahan();
-
-      console.log("=== DATA DARI SERVICE ===");
-      console.log("Isi data:", data);
-      console.log("Apakah Array?", Array.isArray(data));
-      console.log("Tipe data:", typeof data);
-      console.log("=========================");
-
       set({ lahanList: Array.isArray(data) ? data : [] });
     } catch (err) {
       console.error('[useLahanStore] fetchLahan error:', err);

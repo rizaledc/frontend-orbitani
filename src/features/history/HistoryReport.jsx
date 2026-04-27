@@ -62,14 +62,7 @@ const HistoryReport = () => {
       const rawData = res.data?.data || res.data || [];
       setData(Array.isArray(rawData) ? rawData.map(mapRowData) : []);
     } catch (err) {
-      // === DEBUG LOG: Lihat detail error di Developer Tools (F12 → Console) ===
-      console.error("=== HISTORY API DEBUG ===");
-      console.error("Status:", err.response?.status);
-      console.error("Status Text:", err.response?.statusText);
-      console.error("Response Data:", err.response?.data);
-      console.error("Request URL:", err.config?.url);
-      console.error("Full Error:", err);
-      console.error("========================");
+      console.error('[HistoryReport] fetchHistory error:', err);
 
       // Fallback dummy data jika backend belum siap
       if (!err.response || err.response.status === 404 || err.response.status === 500) {

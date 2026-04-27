@@ -17,10 +17,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("Mencoba login ke Azure...");
     try {
       const data = await loginUser({ username, password });
-      console.log("Response Backend:", data);
 
       // Save token first so Axios interceptor immediately uses it for the next request
       localStorage.setItem('orbitani_token', data.access_token);
@@ -31,7 +29,6 @@ const Login = () => {
       // Store both profile data and token into zustand memory
       login(profile.data, data.access_token);
 
-      console.log("Login Berhasil, Token Tersimpan!");
       toast.success('Login berhasil!');
       navigate('/dashboard');
     } catch (err) {
