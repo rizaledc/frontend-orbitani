@@ -330,7 +330,7 @@ const MapDashboard = () => {
   const handleEditLahan = (e, lahan) => {
     e.stopPropagation();
     setEditTarget(lahan);
-    setFormData({ nama: lahan.name || lahan.nama || '', keterangan: lahan.description || lahan.keterangan || '' });
+    setFormData({ nama: lahan.name || lahan.nama || '', keterangan: lahan.description || lahan.deskripsi || lahan.keterangan || '' });
     setDrawnGeoJson(null);
     setShowSaveModal(true);
   };
@@ -562,7 +562,7 @@ const MapDashboard = () => {
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="font-bold text-gray-900 text-sm truncate">{lahan.name || lahan.nama}</h3>
-                        <p className="text-[11px] text-gray-500 truncate mt-0.5">{lahan.description || lahan.keterangan || '-'}</p>
+                        <p className="text-[11px] text-gray-500 truncate mt-0.5">{lahan.description || lahan.deskripsi || lahan.keterangan || '-'}</p>
                       </div>
                       {/* Action icons */}
                       <div className="flex items-center gap-1 shrink-0">
