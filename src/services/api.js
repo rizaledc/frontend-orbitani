@@ -114,6 +114,10 @@ api.interceptors.response.use(
         });
         return Promise.reject(error);
       }
+      // GEE live-fetch failure — silent so handleLahanClick can retry without params
+      if (requestUrl.includes('/data')) {
+        return Promise.reject(error);
+      }
     }
 
     // All other errors — global toast (skip auth routes)
@@ -124,7 +128,9 @@ api.interceptors.response.use(
       const msg = Array.isArray(detail)
         ? detail.map((e) => e.msg || e.message || JSON.stringify(e)).join('; ')
         : (typeof detail === 'string' ? detail : 'Terjadi kendala pada server.');
-      toast.error(msg);
+      if (!msg.includes('berada di luar Lahan')) {
+        toast.error(msg);
+      }
     }
 
     return Promise.reject(error);

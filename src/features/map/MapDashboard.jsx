@@ -2,15 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap, LayersControl, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-draw';
-import { X, MagnifyingGlass, Farm, ChartLineUp, CloudSun, Polygon, List, CaretLeft, Check,
+import { X, MagnifyingGlass, Farm, Polygon, List, CaretLeft, Check,
   CaretUp, CaretDown, CaretRight, MagnifyingGlassPlus, MagnifyingGlassMinus, Crosshair,
-  PencilSimple, Trash, Plant, ArrowClockwise, Thermometer, Drop, Flask, Leaf
+  PencilSimple, Trash, Plant, ArrowClockwise
 } from '@phosphor-icons/react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
 import useLahanStore from '../../store/useLahanStore';
-import { createLahan, getLahanData, getLahanAnalytics, deleteLahan, updateLahan } from '../../services/lahanService';
+import { createLahan, getLahanData, deleteLahan, updateLahan } from '../../services/lahanService';
+import { getHistoryByLahan } from '../../services/historyService';
 import OrbitaniLoader from '../../components/OrbitaniLoader';
 
 const DrawControl = ({ isDrawingMode, setIsDrawingMode, onPolygonDrawn }) => {
@@ -188,8 +188,6 @@ const MapDashboard = () => {
   const mapWrapperRef = useRef(null);
   const DEFAULT_CENTER = [-2.5, 118.0];
 
-  const [analyticsData, setAnalyticsData] = useState([]);
-
   // UX States
   const [isListMinimized, setIsListMinimized] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -208,6 +206,50 @@ const MapDashboard = () => {
   const [isSlideOpen, setIsSlideOpen] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [lahanDetail, setLahanDetail] = useState(null);
+  // Biofisik data extracted from the history API (most reliable source)
+  const [lahanBiofisik, setLahanBiofisik] = useState(null);
+
+  /**
+   * Normalises a raw history row into the biofisik shape expected by the card.
+   * Mirrors the mapRowData logic in HistoryReport so key variants from the
+   * backend are all handled consistently.
+   */
+  const mapHistoryRowToBiofisik = (row) => {
+    if (!row) return null;
+    const src = row.satellite_results || row.data || row;
+    const num = (v, dec) => {
+      const n = Number(src[v] ?? row[v]);
+      return isNaN(n) ? null : dec != null ? n : n;
+    };
+    return {
+      n:           num('nitrogen')    ?? num('n'),
+      p:           num('fosfor')      ?? num('phosphorus') ?? num('p'),
+      k:           num('kalium')      ?? num('potassium')  ?? num('k'),
+      ph:          num('ph')          ?? num('pH'),
+      temperature: num('tci')         ?? num('temperature') ?? num('temp'),
+      humidity:    num('ndti')        ?? num('humidity')   ?? num('humid'),
+      rainfall:    num('rainfall')    ?? num('rain')       ?? num('curah_hujan'),
+    };
+  };
+
+  /** Fetches the most recent history row for a lahan and sets lahanBiofisik. */
+  const refreshBiofisik = async (lahanId) => {
+    try {
+      const rows = await getHistoryByLahan(lahanId);
+      if (Array.isArray(rows) && rows.length > 0) {
+        // Sort descending by created_at and take the freshest row
+        const sorted = [...rows].sort(
+          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+        );
+        const biofisik = mapHistoryRowToBiofisik(sorted[0]);
+        setLahanBiofisik(biofisik);
+      } else {
+        setLahanBiofisik(null);
+      }
+    } catch {
+      setLahanBiofisik(null);
+    }
+  };
 
   // NOTE: init effect is placed AFTER fetchAnalyticsData is defined (see below)
   //       to avoid capturing an undefined reference in the closure.
@@ -242,27 +284,34 @@ const MapDashboard = () => {
     if (!selectedLahan) return;
     const updated = await analyzeLahan(selectedLahan.id);
     if (updated) {
-      // Keep the slide-over in sync with the fresh server object
-      setSelectedLahan((prev) => ({ ...prev, ...updated }));
+      // Try to surface rata_rata_fitur from every possible path in the
+      // analyze response before falling back to a /data re-fetch.
+      const rrfFromAnalyze =
+        updated.rata_rata_fitur ??
+        updated.data?.rata_rata_fitur ??
+        updated.features ??
+        updated.rata_rata ??
+        null;
+
+      setSelectedLahan((prev) => ({
+        ...prev,
+        ...updated,
+        ...(rrfFromAnalyze ? { rata_rata_fitur: rrfFromAnalyze } : {}),
+      }));
+
+      // Refresh biofisik from history (most reliable source)
+      await refreshBiofisik(selectedLahan.id);
+
+      // Also re-fetch /data for completeness
+      try {
+        const freshDetail = await getLahanData(selectedLahan.id);
+        setLahanDetail(freshDetail);
+      } catch { /* non-critical */ }
     }
   };
 
-  const fetchAnalyticsData = async () => {
-    try {
-      const data = await getLahanAnalytics();
-      setAnalyticsData(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // ── Initial data load ──
-  // Placed here (after fetchAnalyticsData) so both const-arrow functions are
-  // defined before the closure runs — avoids "not a function" TypeError.
-  // fetchLahan is a stable Zustand action so listing it as a dep is safe.
   useEffect(() => {
     fetchLahan();
-    fetchAnalyticsData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchLahan]);
 
@@ -348,27 +397,21 @@ const MapDashboard = () => {
     setSelectedLahan(lahan);
     setIsSlideOpen(true);
     setIsDataLoading(true);
+    setLahanDetail(null);
+    setLahanBiofisik(null);
     // On mobile, minimize list automatically when selecting so map + slideover are visible
     if (window.innerWidth < 768) {
       setIsListMinimized(true);
     }
     try {
-      // Calculate polygon centroid to trigger GEE live fetch on the backend
-      const spatialData = lahan.geojson || lahan.koordinat;
-      let params = {};
-      if (spatialData) {
-        try {
-          const center = L.geoJSON(spatialData).getBounds().getCenter();
-          params = { lat: center.lat, lon: center.lng };
-        } catch (e) {
-          console.warn("Gagal menghitung centroid untuk GEE", e);
-        }
-      }
-
-      const detail = await getLahanData(lahan.id, params);
-      setLahanDetail(detail);
+      // Run both in parallel: cached /data AND history rows for this lahan
+      const [detail] = await Promise.allSettled([
+        getLahanData(lahan.id),
+        refreshBiofisik(lahan.id),   // sets lahanBiofisik directly
+      ]);
+      if (detail.status === 'fulfilled') setLahanDetail(detail.value);
     } catch (err) {
-      console.error(err);
+      console.error('[MapDashboard] getLahanData error:', err);
     } finally {
       setIsDataLoading(false);
     }
@@ -660,20 +703,6 @@ const MapDashboard = () => {
               </div>
             ) : (
               <>
-                {/* Meta data */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-gray-400 mb-1">Luas Poligon</p>
-                    <p className="text-sm font-bold text-gray-900">{Math.floor(Math.random() * 50) + 10} Hektar</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-gray-400 mb-1">Status Satelit</p>
-                    <p className="text-sm font-bold text-success flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> Resolusi Tinggi
-                    </p>
-                  </div>
-                </div>
-
                 {/* ── Analisis Tanaman (AI) Button ── */}
                 {(() => {
                   const isThisAnalyzing = analyzingId === selectedLahan?.id;
@@ -747,96 +776,101 @@ const MapDashboard = () => {
                   </div>
                 )}
 
-                {/* ── Kondisi Lahan (Sensor Satelit) ── */}
-                {selectedLahan?.rata_rata_fitur && (
-                  <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 shadow-sm">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Kondisi Biofisik (Rata-rata)</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                          <Thermometer size={16} weight="bold" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-500 font-semibold">Suhu Udara</p>
-                          <p className="text-sm font-bold text-gray-900">{Number(selectedLahan.rata_rata_fitur.temperature || 0).toFixed(1)}°C</p>
-                        </div>
+                {/* ── Kondisi Biofisik Lahan (Satelit) ── */}
+                {(() => {
+                  // Priority: history rows → rata_rata_fitur from analyze → /data endpoint
+                  const biofisik =
+                    lahanBiofisik ??
+                    selectedLahan?.rata_rata_fitur ??
+                    lahanDetail?.rata_rata_fitur ??
+                    lahanDetail?.data?.rata_rata_fitur ??
+                    null;
+
+                  const hasRekomendasi =
+                    Array.isArray(selectedLahan?.hasil_rekomendasi) &&
+                    selectedLahan.hasil_rekomendasi.length > 0;
+
+                  // If no biofisik data but recommendations exist, show a
+                  // subtle placeholder so users know the section is there.
+                  if (!biofisik) {
+                    return hasRekomendasi ? (
+                      <div className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                          Kondisi Biofisik Lahan (Satelit)
+                        </h4>
+                        <p className="text-[11px] text-gray-400">
+                          Data lingkungan belum tersedia. Coba analisis ulang untuk memperbarui.
+                        </p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600 shrink-0">
-                          <Drop size={16} weight="bold" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-500 font-semibold">Kelembapan</p>
-                          <p className="text-sm font-bold text-gray-900">{Number(selectedLahan.rata_rata_fitur.humidity || 0).toFixed(1)}%</p>
-                        </div>
+                    ) : null;
+                  }
+
+                  const fmt = (val, dec = 1) =>
+                    val != null ? Number(val).toFixed(dec) : '–';
+
+                  const metrics = [
+                    { label: 'N',           value: fmt(biofisik.n),           unit: 'mg/kg', wide: false },
+                    { label: 'P',           value: fmt(biofisik.p),           unit: 'mg/kg', wide: false },
+                    { label: 'K',           value: fmt(biofisik.k),           unit: 'mg/kg', wide: false },
+                    { label: 'pH',          value: fmt(biofisik.ph, 2),       unit: '',      wide: false },
+                    { label: 'Temp (TCI)',  value: fmt(biofisik.temperature, 2), unit: '',   wide: false },
+                    { label: 'Humid (NDTI)',value: fmt(biofisik.humidity, 2), unit: '',      wide: false },
+                    { label: 'Rainfall',    value: fmt(biofisik.rainfall),    unit: 'mm',    wide: true,
+                      accent: true },
+                  ];
+
+                  return (
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-fade-in">
+                      {/* Card header — matches Rekomendasi card style */}
+                      <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                          viewBox="0 0 256 256" className="text-blue-500" fill="currentColor">
+                          <path d="M213.66,82.34l-56-56a8,8,0,0,0-11.32,0l-96,96a8,8,0,0,0,0,11.32l56,56a8,8,0,0,0,11.32,0l96-96A8,8,0,0,0,213.66,82.34ZM128,180.69,75.31,128,128,75.31,180.69,128Z"/>
+                        </svg>
+                        <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+                          Kondisi Biofisik Lahan
+                        </h3>
+                        <span className="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                          Satelit
+                        </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                          <Leaf size={16} weight="bold" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-500 font-semibold">pH Tanah</p>
-                          <p className="text-sm font-bold text-gray-900">{Number(selectedLahan.rata_rata_fitur.ph || 0).toFixed(1)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                          <Flask size={16} weight="bold" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-500 font-semibold">Unsur NPK (avg)</p>
-                          <p className="text-sm font-bold text-gray-900">
-                            {Number((selectedLahan.rata_rata_fitur.n + selectedLahan.rata_rata_fitur.p + selectedLahan.rata_rata_fitur.k) / 3 || 0).toFixed(1)} mg/kg
-                          </p>
-                        </div>
+
+                      {/* Metrics grid */}
+                      <div className="p-4 grid grid-cols-3 gap-3">
+                        {metrics.map(({ label, value, unit, wide, accent }) => (
+                          <div
+                            key={label}
+                            className={`flex flex-col gap-0.5 rounded-lg p-2.5 ${
+                              wide ? 'col-span-3' : ''
+                            } ${
+                              accent
+                                ? 'bg-blue-50 border border-blue-100'
+                                : 'bg-gray-50 border border-gray-100'
+                            }`}
+                          >
+                            <span className={`text-[10px] font-semibold uppercase tracking-wide ${
+                              accent ? 'text-blue-500' : 'text-gray-400'
+                            }`}>
+                              {label}
+                            </span>
+                            <span className={`text-sm font-extrabold ${
+                              accent ? 'text-blue-800' : 'text-gray-900'
+                            }`}>
+                              {value}
+                              {unit && (
+                                <span className={`ml-1 text-[10px] font-normal ${
+                                  accent ? 'text-blue-400' : 'text-gray-400'
+                                }`}>
+                                  {unit}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Chart 1: NPK Trends */}
-                <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
-                  <div className="flex items-center gap-2 mb-5">
-                    <ChartLineUp size={18} className="text-primary" weight="duotone" />
-                    <h3 className="text-sm font-bold text-gray-900 tracking-tight">Tren Kesuburan (NPK)</h3>
-                  </div>
-                  <div className="w-full h-[200px]">
-                    {isSlideOpen && (
-                      <ResponsiveContainer width="100%" height={200} minWidth={1}>
-                        <LineChart data={analyticsData.length ? analyticsData : [{ day: 'Sen', n: 40, p: 20, k: 30 }, { day: 'Sel', n: 42, p: 21, k: 32 }, { day: 'Rab', n: 45, p: 25, k: 30 }, { day: 'Kam', n: 48, p: 28, k: 35 }]}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', fontSize: '12px' }} />
-                          <Line type="monotone" dataKey="n" name="N" stroke="#1c4234" strokeWidth={3} dot={false} />
-                          <Line type="monotone" dataKey="p" name="P" stroke="#2ecc71" strokeWidth={3} dot={false} />
-                          <Line type="monotone" dataKey="k" name="K" stroke="#f59e0b" strokeWidth={3} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
-                </div>
-
-                {/* Chart 2: Weather */}
-                <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
-                  <div className="flex items-center gap-2 mb-5">
-                    <CloudSun size={18} className="text-blue-500" weight="duotone" />
-                    <h3 className="text-sm font-bold text-gray-900 tracking-tight">Prediksi Curah Hujan</h3>
-                  </div>
-                  <div className="w-full h-[200px]">
-                    {isSlideOpen && (
-                      <ResponsiveContainer width="100%" height={200} minWidth={1}>
-                        <LineChart data={[{ day: 'Sen', mm: 12 }, { day: 'Sel', mm: 5 }, { day: 'Rab', mm: 0 }, { day: 'Kam', mm: 35 }, { day: 'Jum', mm: 20 }]}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', fontSize: '12px' }} />
-                          <Line type="stepAfter" dataKey="mm" name="Hujan (mm)" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
-                </div>
+                  );
+                })()}
 
               </>
             )}
