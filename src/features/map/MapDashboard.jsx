@@ -201,6 +201,7 @@ const MapDashboard = () => {
   const [formData, setFormData] = useState({ nama: '', keterangan: '' });
   const [editTarget, setEditTarget] = useState(null); // lahan being edited (null = create mode)
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, lahan: null });
 
   // States for Slide-over
   const [selectedLahan, setSelectedLahan] = useState(null);
@@ -310,12 +311,20 @@ const MapDashboard = () => {
   };
 
   // ── Delete with Optimistic UI ──
-  const handleDeleteLahan = async (e, lahan) => {
+  const handleDeleteLahan = (e, lahan) => {
     e.stopPropagation();
-    if (!window.confirm(`Hapus lahan "${lahan.name || lahan.nama}"?`)) return;
+    setDeleteConfirm({ isOpen: true, lahan }); // Buka modal custom
+  };
+
+  const confirmDelete = async () => {
+    const { lahan } = deleteConfirm;
+    if (!lahan) return;
+
     // Optimistic remove via store setter
     setLahanList(lahanList.filter((l) => l.id !== lahan.id));
     if (selectedLahan?.id === lahan.id) setIsSlideOpen(false);
+    setDeleteConfirm({ isOpen: false, lahan: null });
+    
     try {
       await deleteLahan(lahan.id);
       toast.success('Lahan berhasil dihapus.');
@@ -835,6 +844,35 @@ const MapDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Custom Delete Confirmation Modal ── */}
+      {deleteConfirm.isOpen && (
+        <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xs rounded-2xl shadow-2xl p-6 text-center animate-scale-in">
+            <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash size={24} weight="bold" />
+            </div>
+            <h3 className="text-gray-900 font-bold mb-2">Hapus Lahan?</h3>
+            <p className="text-gray-500 text-xs mb-6">
+              Lahan <span className="font-bold text-gray-700">"{deleteConfirm.lahan?.name || deleteConfirm.lahan?.nama}"</span> akan dihapus permanen.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setDeleteConfirm({ isOpen: false, lahan: null })}
+                className="flex-1 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm transition-colors"
+              >
+                Hapus
+              </button>
+            </div>
           </div>
         </div>
       )}
