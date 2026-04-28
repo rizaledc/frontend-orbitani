@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { getLahanData } from '../../services/lahanService';
 
 const customMarkdown = {
   h1: ({ children }) => <h1 className="text-lg font-bold mt-2 mb-1 text-primary">{children}</h1>,
@@ -99,6 +100,7 @@ const AnalysisPanel = ({ data, onClose }) => {
   ]);
   const [input, setInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [detailLahan, setDetailLahan] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -108,22 +110,39 @@ const AnalysisPanel = ({ data, onClose }) => {
   useEffect(() => {
     if (data) {
       setMessages([{ role: 'assistant', content: `Halo! Mari bahas lahan **${data.nama || `Titik #${data.id}`}**. Tanyakan apapun soal kondisi tanah atau iklimnya.` }]);
+      
+      setDetailLahan(null);
+      getLahanData(data.id)
+        .then(res => setDetailLahan(res))
+        .catch(err => console.error("Gagal memuat detail:", err));
     }
   }, [data?.id]);
 
   if (!data) return null;
 
   // ── Derived: individual sample points from satellite analysis ──
-  const samples = data?.satellite_results ?? [];
+  const extractSamples = (obj) => {
+    const pts = obj?.satellite_results ?? obj?.titik_sampel ?? obj?.data?.satellite_results ?? obj?.data?.titik_sampel ?? [];
+    return Array.isArray(pts) && pts.length > 0 ? pts : null;
+  };
+  const samples = extractSamples(detailLahan) ?? extractSamples(data) ?? [];
   const hasSamples = samples.length > 0;
   const nStats = hasSamples ? calcStats(samples, getN)    : null;
   const pStats = hasSamples ? calcStats(samples, getP)    : null;
   const kStats = hasSamples ? calcStats(samples, getK)    : null;
   const nMax   = nStats?.max || 1;
 
+  const biofisik = detailLahan?.rata_rata_fitur ?? detailLahan?.data?.rata_rata_fitur ?? data?.rata_rata_fitur ?? data;
+  const bioN = biofisik?.nitrogen ?? biofisik?.N ?? biofisik?.n ?? data?.nitrogen;
+  const bioP = biofisik?.fosfor ?? biofisik?.P ?? biofisik?.p ?? data?.fosfor;
+  const bioK = biofisik?.kalium ?? biofisik?.K ?? biofisik?.k ?? data?.kalium;
+  const bioPH = biofisik?.ph ?? biofisik?.pH ?? data?.ph;
+  const bioSuhu = biofisik?.suhu ?? biofisik?.temperature ?? data?.suhu;
+  const bioLembab = biofisik?.kelembapan ?? biofisik?.humidity ?? data?.kelembapan;
+  const bioHujan = biofisik?.curah_hujan ?? biofisik?.rainfall ?? data?.curah_hujan;
+
   const buildContext = () => {
-    const d = data;
-    return `[Konteks Lahan "${d.nama || 'Titik #' + d.id}": N=${d.nitrogen ?? '-'}, P=${d.fosfor ?? '-'}, K=${d.kalium ?? '-'}, pH=${d.ph ?? '-'}, Suhu=${d.suhu ?? '-'}°C, Kelembapan=${d.kelembapan ?? '-'}%, Curah_Hujan=${d.curah_hujan ?? '-'}mm]`;
+    return `[Konteks Lahan "${data.nama || 'Titik #' + data.id}": N=${bioN ?? '-'}, P=${bioP ?? '-'}, K=${bioK ?? '-'}, pH=${bioPH ?? '-'}, Suhu=${bioSuhu ?? '-'}°C, Kelembapan=${bioLembab ?? '-'}%, Curah_Hujan=${bioHujan ?? '-'}mm]`;
   };
 
   const handleSendChat = async () => {
@@ -200,9 +219,12 @@ const AnalysisPanel = ({ data, onClose }) => {
             with status badges on each metric
             ═══════════════════════════════════════════ */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
-            <Hash size={16} className="text-secondary" /> Kondisi Biofisik Lahan
-          </h4>
+          <div className="mb-3">
+            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+              <Hash size={16} className="text-secondary" /> Kondisi Biofisik Lahan
+            </h4>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 ml-6">Rata-rata 10 titik sampel</p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             {/* NPK Block */}
             <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-gray-800 dark:to-gray-800 p-4 rounded-2xl border border-primary/10 dark:border-gray-700">
@@ -210,20 +232,20 @@ const AnalysisPanel = ({ data, onClose }) => {
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Nitrogen</span>
                 <span className="font-semibold text-neutral-text dark:text-gray-200 flex items-center">
-                  {data.nitrogen ?? '-'} <span className="text-[10px] font-normal text-gray-400 ml-1">mg/kg</span>
-                  <Badge badge={getNBadge(data.nitrogen)} />
+                  {bioN != null ? Number(bioN).toFixed(1) : '-'} <span className="text-[10px] font-normal text-gray-400 ml-1">mg/kg</span>
+                  <Badge badge={getNBadge(bioN)} />
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm mt-1">
                 <span className="text-gray-600 dark:text-gray-400">Fosfor</span>
                 <span className="font-semibold text-neutral-text dark:text-gray-200">
-                  {data.fosfor ?? '-'} <span className="text-[10px] font-normal text-gray-400">mg/kg</span>
+                  {bioP != null ? Number(bioP).toFixed(1) : '-'} <span className="text-[10px] font-normal text-gray-400">mg/kg</span>
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm mt-1">
                 <span className="text-gray-600 dark:text-gray-400">Kalium</span>
                 <span className="font-semibold text-neutral-text dark:text-gray-200">
-                  {data.kalium ?? '-'} <span className="text-[10px] font-normal text-gray-400">mg/kg</span>
+                  {bioK != null ? Number(bioK).toFixed(1) : '-'} <span className="text-[10px] font-normal text-gray-400">mg/kg</span>
                 </span>
               </div>
             </div>
@@ -234,28 +256,28 @@ const AnalysisPanel = ({ data, onClose }) => {
                 <span className="text-[10px] uppercase font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1 mb-1">
                   <Thermometer size={14} /> pH
                 </span>
-                <span className="text-lg font-bold text-orange-700 dark:text-orange-300">{data.ph ?? '-'}</span>
-                <Badge badge={getPHBadge(data.ph)} />
+                <span className="text-lg font-bold text-orange-700 dark:text-orange-300">{bioPH != null ? Number(bioPH).toFixed(2) : '-'}</span>
+                <Badge badge={getPHBadge(bioPH)} />
               </div>
               <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-2xl border border-red-100 dark:border-red-500/20 flex flex-col justify-center">
                 <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-400 flex items-center gap-1 mb-1">
                   <Thermometer size={14} /> Suhu
                 </span>
-                <span className="text-lg font-bold text-red-700 dark:text-red-300">{data.suhu ? `${data.suhu}°C` : '-'}</span>
-                <Badge badge={getTempBadge(data.suhu)} />
+                <span className="text-lg font-bold text-red-700 dark:text-red-300">{bioSuhu != null ? `${Number(bioSuhu).toFixed(1)}°C` : '-'}</span>
+                <Badge badge={getTempBadge(bioSuhu)} />
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-500/20 flex flex-col justify-center">
                 <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-1">
                   <Drop size={14} /> Lembab
                 </span>
-                <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{data.kelembapan ? `${data.kelembapan}%` : '-'}</span>
-                <Badge badge={getHumidBadge(data.kelembapan)} />
+                <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{bioLembab != null ? `${Number(bioLembab).toFixed(1)}%` : '-'}</span>
+                <Badge badge={getHumidBadge(bioLembab)} />
               </div>
               <div className="bg-cyan-50 dark:bg-cyan-900/10 p-3 rounded-2xl border border-cyan-100 dark:border-cyan-500/20 flex flex-col justify-center">
                 <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1 mb-1">
                   <CloudRain size={14} /> Curah Hujan
                 </span>
-                <span className="text-lg font-bold text-cyan-700 dark:text-cyan-300">{data.curah_hujan ? `${data.curah_hujan} mm` : '-'}</span>
+                <span className="text-lg font-bold text-cyan-700 dark:text-cyan-300">{bioHujan != null ? `${Number(bioHujan).toFixed(1)} mm` : '-'}</span>
               </div>
             </div>
           </div>
