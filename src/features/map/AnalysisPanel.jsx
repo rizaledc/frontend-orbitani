@@ -31,50 +31,50 @@ const customMarkdown = {
 };
 
 // ── Field accessors — handles naming variants from the backend ──
-const getN     = (r) => r?.N    ?? r?.nitrogen    ?? r?.n    ?? null;
-const getP     = (r) => r?.P    ?? r?.fosfor       ?? r?.phosphorus ?? r?.p ?? null;
-const getK     = (r) => r?.K    ?? r?.kalium       ?? r?.potassium  ?? r?.k ?? null;
-const getPH    = (r) => r?.pH   ?? r?.ph           ?? null;
-const getTemp  = (r) => r?.temperature ?? r?.temp ?? r?.suhu ?? r?.tci ?? null;
-const getHumid = (r) => r?.humidity   ?? r?.humid ?? r?.kelembapan ?? r?.ndti ?? null;
-const getRain  = (r) => r?.rainfall   ?? r?.rain  ?? r?.curah_hujan ?? null;
-const getReko  = (r) => r?.rekomendasi ?? r?.recommendation ?? r?.label ?? '-';
-const fmt      = (v, d = 1) => v != null ? Number(v).toFixed(d) : '–';
+const getN = (r) => r?.N ?? r?.nitrogen ?? r?.n ?? null;
+const getP = (r) => r?.P ?? r?.fosfor ?? r?.phosphorus ?? r?.p ?? null;
+const getK = (r) => r?.K ?? r?.kalium ?? r?.potassium ?? r?.k ?? null;
+const getPH = (r) => r?.pH ?? r?.ph ?? null;
+const getTemp = (r) => r?.temperature ?? r?.temp ?? r?.suhu ?? r?.tci ?? null;
+const getHumid = (r) => r?.humidity ?? r?.humid ?? r?.kelembapan ?? r?.ndti ?? null;
+const getRain = (r) => r?.rainfall ?? r?.rain ?? r?.curah_hujan ?? null;
+const getReko = (r) => r?.rekomendasi ?? r?.recommendation ?? r?.label ?? '-';
+const fmt = (v, d = 1) => v != null ? Number(v).toFixed(d) : '–';
 
 const calcStats = (arr, getter) => {
   const vals = arr.map(getter).filter((v) => v != null);
   if (!vals.length) return null;
   const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
-  const std  = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
+  const std = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
   return { min: Math.min(...vals), max: Math.max(...vals), mean, std };
 };
 
 // ── Feature 5: Status badge helpers ──
 const getNBadge = (v) => {
   if (v == null) return null;
-  if (v < 20)  return { label: 'Sangat Rendah', cls: 'bg-red-100 text-red-700' };
-  if (v < 50)  return { label: 'Rendah',        cls: 'bg-orange-100 text-orange-700' };
-  if (v < 100) return { label: 'Sedang',         cls: 'bg-lime-100 text-lime-700' };
-  return              { label: 'Tinggi',          cls: 'bg-green-100 text-green-700' };
+  if (v < 20) return { label: 'Sangat Rendah', cls: 'bg-red-100 text-red-700' };
+  if (v < 50) return { label: 'Rendah', cls: 'bg-orange-100 text-orange-700' };
+  if (v < 100) return { label: 'Sedang', cls: 'bg-lime-100 text-lime-700' };
+  return { label: 'Tinggi', cls: 'bg-green-100 text-green-700' };
 };
 const getPHBadge = (v) => {
   if (v == null) return null;
   if (v < 5.5) return { label: 'Sangat Asam', cls: 'bg-red-100 text-red-700' };
-  if (v < 6.5) return { label: 'Optimal',     cls: 'bg-green-100 text-green-700' };
-  if (v < 7.5) return { label: 'Netral',      cls: 'bg-blue-100 text-blue-700' };
-  return              { label: 'Basa',         cls: 'bg-purple-100 text-purple-700' };
+  if (v < 6.5) return { label: 'Optimal', cls: 'bg-green-100 text-green-700' };
+  if (v < 7.5) return { label: 'Netral', cls: 'bg-blue-100 text-blue-700' };
+  return { label: 'Basa', cls: 'bg-purple-100 text-purple-700' };
 };
 const getHumidBadge = (v) => {
   if (v == null) return null;
   if (v < 60) return { label: 'Kering', cls: 'bg-yellow-100 text-yellow-700' };
   if (v < 80) return { label: 'Normal', cls: 'bg-green-100 text-green-700' };
-  return             { label: 'Tinggi', cls: 'bg-blue-100 text-blue-700' };
+  return { label: 'Tinggi', cls: 'bg-blue-100 text-blue-700' };
 };
 const getTempBadge = (v) => {
   if (v == null) return null;
-  if (v < 20) return { label: 'Dingin',  cls: 'bg-blue-100 text-blue-700' };
+  if (v < 20) return { label: 'Dingin', cls: 'bg-blue-100 text-blue-700' };
   if (v < 30) return { label: 'Optimal', cls: 'bg-green-100 text-green-700' };
-  return             { label: 'Panas',   cls: 'bg-red-100 text-red-700' };
+  return { label: 'Panas', cls: 'bg-red-100 text-red-700' };
 };
 
 const Badge = ({ badge }) =>
@@ -84,17 +84,18 @@ const Badge = ({ badge }) =>
 
 // ── Feature 4: Static SHAP values from notebook analysis ──
 const SHAP_DATA = [
-  { label: 'Humidity',     value: 0.0317 },
-  { label: 'N',           value: 0.0267 },
-  { label: 'K',           value: 0.0252 },
-  { label: 'Rainfall',    value: 0.0251 },
-  { label: 'P',           value: 0.0229 },
+  { label: 'Humidity', value: 0.0317 },
+  { label: 'N', value: 0.0267 },
+  { label: 'K', value: 0.0252 },
+  { label: 'Rainfall', value: 0.0251 },
+  { label: 'P', value: 0.0229 },
   { label: 'Temperature', value: 0.0098 },
-  { label: 'pH',          value: 0.0046 },
+  { label: 'pH', value: 0.0046 },
 ];
 const SHAP_MAX = SHAP_DATA[0].value;
 
 const AnalysisPanel = ({ data, onClose }) => {
+  console.log('PANEL RENDERED', data?.id, data?.satellite_results?.length);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Halo! Saya Pakar Agronomi AI. Ada yang ingin dianalisis tentang titik lahan ini?' }
   ]);
@@ -115,7 +116,7 @@ const AnalysisPanel = ({ data, onClose }) => {
   useEffect(() => {
     if (data) {
       setMessages([{ role: 'assistant', content: `Halo! Mari bahas lahan **${data.nama || `Titik #${data.id}`}**. Tanyakan apapun soal kondisi tanah atau iklimnya.` }]);
-      
+
       setDetailLahan(null);
       getLahanData(data.id)
         .then(res => setDetailLahan(res))
@@ -132,10 +133,10 @@ const AnalysisPanel = ({ data, onClose }) => {
   };
   const samples = extractSamples(detailLahan) ?? extractSamples(data) ?? [];
   const hasSamples = samples.length > 0;
-  const nStats = hasSamples ? calcStats(samples, getN)    : null;
-  const pStats = hasSamples ? calcStats(samples, getP)    : null;
-  const kStats = hasSamples ? calcStats(samples, getK)    : null;
-  const nMax   = nStats?.max || 1;
+  const nStats = hasSamples ? calcStats(samples, getN) : null;
+  const pStats = hasSamples ? calcStats(samples, getP) : null;
+  const kStats = hasSamples ? calcStats(samples, getK) : null;
+  const nMax = nStats?.max || 1;
 
   const biofisik = detailLahan?.rata_rata_fitur ?? detailLahan?.data?.rata_rata_fitur ?? data?.rata_rata_fitur ?? data;
   const bioN = biofisik?.nitrogen ?? biofisik?.N ?? biofisik?.n ?? data?.nitrogen;
@@ -441,11 +442,10 @@ const AnalysisPanel = ({ data, onClose }) => {
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-accent/20 text-primary dark:text-accent'}`}>
                   {msg.role === 'user' ? <User size={14} weight="bold" /> : <Sparkle size={14} weight="fill" />}
                 </div>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border ${
-                  msg.role === 'user'
-                    ? 'bg-primary text-white rounded-tr-sm border-transparent'
-                    : 'bg-white dark:bg-gray-800 text-neutral-text dark:text-gray-100 rounded-tl-sm border-gray-100 dark:border-gray-700'
-                }`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border ${msg.role === 'user'
+                  ? 'bg-primary text-white rounded-tr-sm border-transparent'
+                  : 'bg-white dark:bg-gray-800 text-neutral-text dark:text-gray-100 rounded-tl-sm border-gray-100 dark:border-gray-700'
+                  }`}>
                   {msg.role === 'assistant' ? (
                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={customMarkdown}>
                       {msg.content}
