@@ -886,23 +886,13 @@ const MapDashboard = () => {
                     FEATURE 2 — Data Per Titik Sampel
                     ═══════════════════════════════════════════ */}
                 {(() => {
-                  // Derive sample points from every possible source
-                  const extractSamples = (obj) => {
-                    const pts =
-                      obj?.satellite_results ??
-                      obj?.titik_sampel ??
-                      obj?.data?.satellite_results ??
-                      obj?.data?.titik_sampel ??
-                      [];
-                    return Array.isArray(pts) && pts.length > 0 ? pts : null;
-                  };
-                  const activeSamplePoints =
-                    extractSamples(selectedLahan) ??
-                    extractSamples(lahanDetail) ??
+                  const _pts =
+                    (Array.isArray(selectedLahan?.satellite_results) && selectedLahan.satellite_results.length > 0 ? selectedLahan.satellite_results : null) ??
+                    (Array.isArray(lahanDetail?.satellite_results) && lahanDetail.satellite_results.length > 0 ? lahanDetail.satellite_results : null) ??
+                    (Array.isArray(lahanDetail?.data?.satellite_results) && lahanDetail.data.satellite_results.length > 0 ? lahanDetail.data.satellite_results : null) ??
                     (samplePoints.length > 0 ? samplePoints : null);
-
-                  if (!activeSamplePoints) return null;
-                  return (() => {
+                  if (!_pts) return null;
+                  const pts = _pts;
                   const getN     = (r) => r?.N     ?? r?.nitrogen    ?? r?.n    ?? null;
                   const getP     = (r) => r?.P     ?? r?.fosfor      ?? r?.phosphorus ?? r?.p ?? null;
                   const getK     = (r) => r?.K     ?? r?.kalium      ?? r?.potassium  ?? r?.k ?? null;
@@ -921,9 +911,9 @@ const MapDashboard = () => {
                     return { min: Math.min(...vals), max: Math.max(...vals), mean, std };
                   };
 
-                  const nStats = calcStats(activeSamplePoints, getN);
-                  const pStats = calcStats(activeSamplePoints, getP);
-                  const kStats = calcStats(activeSamplePoints, getK);
+                  const nStats = calcStats(pts, getN);
+                  const pStats = calcStats(pts, getP);
+                  const kStats = calcStats(pts, getK);
                   const nMax   = nStats?.max || 1;
 
                   return (
@@ -934,7 +924,7 @@ const MapDashboard = () => {
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" className="text-emerald-500"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg>
                           <h3 className="text-sm font-bold text-gray-900 tracking-tight">Data Per Titik Sampel</h3>
                           <span className="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                            {activeSamplePoints.length} titik
+                            {pts.length} titik
                           </span>
                         </div>
                         <div className="overflow-x-auto">
@@ -947,7 +937,7 @@ const MapDashboard = () => {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                              {activeSamplePoints.map((pt, idx) => (
+                              {pts.map((pt, idx) => (
                                 <tr key={idx} className="even:bg-gray-50/60 hover:bg-emerald-50/40 transition-colors">
                                   <td className="px-2.5 py-2 font-bold text-gray-300">{idx + 1}</td>
                                   <td className="px-2.5 py-2 text-gray-700">{fmt(getN(pt))}</td>
@@ -991,7 +981,7 @@ const MapDashboard = () => {
                             <h3 className="text-sm font-bold text-gray-900 tracking-tight">Distribusi Nitrogen (N) per Titik</h3>
                           </div>
                           <div className="p-4 space-y-2">
-                            {activeSamplePoints.map((pt, idx) => {
+                            {pts.map((pt, idx) => {
                               const val = getN(pt);
                               const pct = val != null ? Math.max(3, (val / nMax) * 100) : 0;
                               return (
