@@ -226,7 +226,7 @@ const AnalysisPanel = ({ data, onClose }) => {
         <div>
           <div className="mb-3">
             <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-              <Hash size={16} className="text-secondary" /> Kondisi Biofisik Lahan
+              <Hash size={16} className="text-secondary" /> Kondisi Biofisik Lahan [TEST v2]
             </h4>
             <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 ml-6">Rata-rata 10 titik sampel</p>
           </div>
