@@ -684,6 +684,9 @@ const MapDashboard = () => {
       {isSlideOpen && selectedLahan && (
         <AnalysisPanel 
           data={selectedLahan} 
+          lahanDetail={lahanDetail}
+          lahanBiofisik={lahanBiofisik}
+          samplePoints={samplePoints}
           onClose={() => setIsSlideOpen(false)} 
           onAnalyze={handleAnalyzeLahan}
           isAnalyzing={analyzingId === selectedLahan.id}

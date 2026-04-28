@@ -109,7 +109,7 @@ const formatDate = (isoString) => {
   }
 };
 
-const AnalysisPanel = ({ data, onClose, onAnalyze, isAnalyzing }) => {
+const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose, onAnalyze, isAnalyzing }) => {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Halo! Saya Pakar Agronomi AI. Ada yang ingin dianalisis tentang titik lahan ini?' }
   ]);
@@ -152,13 +152,15 @@ const AnalysisPanel = ({ data, onClose, onAnalyze, isAnalyzing }) => {
 
   if (!data) return null;
 
+  const finalSamples = (Array.isArray(samplePoints) && samplePoints.length > 0) ? samplePoints : samples;
+
   // ── Derived: individual sample points from satellite analysis ──
-  const nStats = samples.length > 0 ? calcStats(samples, getN) : null;
-  const pStats = samples.length > 0 ? calcStats(samples, getP) : null;
-  const kStats = samples.length > 0 ? calcStats(samples, getK) : null;
+  const nStats = finalSamples.length > 0 ? calcStats(finalSamples, getN) : null;
+  const pStats = finalSamples.length > 0 ? calcStats(finalSamples, getP) : null;
+  const kStats = finalSamples.length > 0 ? calcStats(finalSamples, getK) : null;
   const nMax = nStats?.max || 1;
 
-  const biofisik = detailLahan?.rata_rata_fitur ?? detailLahan?.data?.rata_rata_fitur ?? data?.rata_rata_fitur ?? data;
+  const biofisik = lahanBiofisik ?? lahanDetail?.rata_rata_fitur ?? lahanDetail?.data?.rata_rata_fitur ?? detailLahan?.rata_rata_fitur ?? detailLahan?.data?.rata_rata_fitur ?? data?.rata_rata_fitur ?? data;
   const bioN = biofisik?.nitrogen ?? biofisik?.N ?? biofisik?.n ?? data?.nitrogen;
   const bioP = biofisik?.fosfor ?? biofisik?.P ?? biofisik?.p ?? data?.fosfor;
   const bioK = biofisik?.kalium ?? biofisik?.K ?? biofisik?.k ?? data?.kalium;
@@ -378,7 +380,7 @@ const AnalysisPanel = ({ data, onClose, onAnalyze, isAnalyzing }) => {
             <Leaf size={16} className="text-emerald-500" /> Data Per Titik Sampel
           </h4>
 
-          {samples.length === 0 ? (
+          {finalSamples.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">
               Data per titik belum tersedia. Lakukan analisis ulang.
             </p>
@@ -397,7 +399,7 @@ const AnalysisPanel = ({ data, onClose, onAnalyze, isAnalyzing }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {samples.map((pt, idx) => (
+                  {finalSamples.map((pt, idx) => (
                     <tr key={idx} className="even:bg-gray-50/60 dark:even:bg-gray-800/30">
                       <td className="px-2.5 py-2 font-bold text-gray-400">{idx + 1}</td>
                       <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getN(pt))}</td>
@@ -443,14 +445,14 @@ const AnalysisPanel = ({ data, onClose, onAnalyze, isAnalyzing }) => {
           <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
             <Hash size={16} className="text-blue-500" /> Distribusi Nitrogen (N) per Titik
           </h4>
-          {samples.length === 0 ? (
+          {finalSamples.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">
               Data distribusi belum tersedia. Lakukan analisis ulang.
             </p>
           ) : !nStats ? null : (
             <>
               <div className="space-y-1.5">
-                {samples.map((pt, idx) => {
+                {finalSamples.map((pt, idx) => {
                   const val = getN(pt);
                 const pct = val != null ? Math.max(2, (val / nMax) * 100) : 0;
                 return (

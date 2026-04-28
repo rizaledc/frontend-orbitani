@@ -37,11 +37,11 @@ const getSampleField = (obj, ...keys) => {
   for (const k of keys) if (obj?.[k] != null) return obj[k];
   return null;
 };
-const getSampleN    = (r) => getSampleField(r, 'N', 'nitrogen', 'n');
-const getSampleP    = (r) => getSampleField(r, 'P', 'fosfor', 'phosphorus', 'p');
-const getSampleK    = (r) => getSampleField(r, 'K', 'kalium', 'potassium', 'k');
+const getSampleN = (r) => getSampleField(r, 'N', 'nitrogen', 'n');
+const getSampleP = (r) => getSampleField(r, 'P', 'fosfor', 'phosphorus', 'p');
+const getSampleK = (r) => getSampleField(r, 'K', 'kalium', 'potassium', 'k');
 const getSampleReko = (r) => getSampleField(r, 'rekomendasi', 'recommendation', 'label') ?? '-';
-const fmtVal        = (v) => v != null ? Number(v).toFixed(1) : '–';
+const fmtVal = (v) => v != null ? Number(v).toFixed(1) : '–';
 
 /* ── Inner component that has access to the Leaflet map instance ── */
 const MapController = ({ mapRef }) => {
@@ -147,9 +147,9 @@ const MapContainer = () => {
       if (!wrapper || !wrapper.contains(document.activeElement)) return;
       if (!mapRef.current) return;
       const KEY_MAP = {
-        ArrowUp:    () => mapRef.current.panBy([0, -PAN_STEP]),
-        ArrowDown:  () => mapRef.current.panBy([0, PAN_STEP]),
-        ArrowLeft:  () => mapRef.current.panBy([-PAN_STEP, 0]),
+        ArrowUp: () => mapRef.current.panBy([0, -PAN_STEP]),
+        ArrowDown: () => mapRef.current.panBy([0, PAN_STEP]),
+        ArrowLeft: () => mapRef.current.panBy([-PAN_STEP, 0]),
         ArrowRight: () => mapRef.current.panBy([PAN_STEP, 0]),
         '+': () => mapRef.current.zoomIn(),
         '=': () => mapRef.current.zoomIn(),
@@ -219,11 +219,10 @@ const MapContainer = () => {
         {hasSamples && (
           <button
             onClick={() => setShowSamplePoints((v) => !v)}
-            className={`flex items-center gap-2 px-4 py-3 backdrop-blur-md font-semibold rounded-full shadow-xl border transition-all hover:scale-105 active:scale-95 ${
-              showSamplePoints
-                ? 'bg-[#E24B4A]/90 text-white border-[#E24B4A]/20'
-                : 'bg-white/90 text-gray-600 border-white/20'
-            }`}
+            className={`flex items-center gap-2 px-4 py-3 backdrop-blur-md font-semibold rounded-full shadow-xl border transition-all hover:scale-105 active:scale-95 ${showSamplePoints
+              ? 'bg-[#E24B4A]/90 text-white border-[#E24B4A]/20'
+              : 'bg-white/90 text-gray-600 border-white/20'
+              }`}
           >
             <MapPin size={18} weight="duotone" />
             <span className="hidden sm:inline">
