@@ -154,7 +154,13 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
 
   if (!data) return null;
 
-  const finalSamples = (Array.isArray(samplePoints) && samplePoints.length > 0) ? samplePoints : samples;
+  // Deep fallback chain to find satellite_results wherever it lives
+  const finalSamples =
+    (Array.isArray(samplePoints) && samplePoints.length > 0 ? samplePoints : null) ??
+    (Array.isArray(data?.satellite_results) && data.satellite_results.length > 0 ? data.satellite_results : null) ??
+    (Array.isArray(lahanDetail?.satellite_results) && lahanDetail.satellite_results.length > 0 ? lahanDetail.satellite_results : null) ??
+    (Array.isArray(lahanDetail?.data?.satellite_results) && lahanDetail.data.satellite_results.length > 0 ? lahanDetail.data.satellite_results : null) ??
+    (Array.isArray(samples) && samples.length > 0 ? samples : []);
 
   // ── Derived: individual sample points from satellite analysis ──
   const nStats = finalSamples.length > 0 ? calcStats(finalSamples, getN) : null;
@@ -244,70 +250,48 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
       {/* ─── Scrollable Content ─── */}
       <div className="flex-1 overflow-y-auto p-5 custom-scrollbar flex flex-col gap-6">
 
-        {/* ── Header Area for Analysis Action ── */}
-        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/10 rounded-2xl p-4 border border-emerald-200/50 dark:border-emerald-800/30 shadow-sm relative overflow-hidden">
-          {/* Decorative blur */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/10 dark:bg-emerald-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-
-          <div className="flex flex-col gap-4 relative z-10">
-            {/* Action Button */}
-            {(() => {
-              const hasResult = Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0;
-              if (!onAnalyze) return null;
-              return (
-                <button
-                  onClick={onAnalyze}
-                  disabled={isAnalyzing}
-                  className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shadow-sm ${
-                    isAnalyzing ? "bg-emerald-600/80 text-white cursor-not-allowed" : "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] hover:shadow-md"
-                  }`}
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <OrbitaniLoader size="sm" />
-                      <span>Menganalisis Lahan...</span>
-                    </>
-                  ) : (
-                    <>
-                      {hasResult ? <ArrowClockwise size={16} weight="bold" /> : <Plant size={16} weight="duotone" />}
-                      <span>{hasResult ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
-                    </>
-                  )}
-                </button>
-              );
-            })()}
-
-            {/* Rekomendasi Card */}
-            {Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0 && (
-              <div className="pt-3 border-t border-emerald-200/50 dark:border-emerald-800/50">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-extrabold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wide">
-                    <Sparkle weight="fill" className="text-emerald-500" /> Hasil Analisis AI
-                  </h4>
-                  <span className="text-[10px] text-emerald-600/70 dark:text-emerald-500/50 font-medium">
-                    {formatDate(data.terakhir_dianalisis)}
-                  </span>
-                </div>
-                
-                <div className="flex flex-col gap-2">
-                  {data.hasil_rekomendasi.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-white/60 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 transition-colors px-3 py-2.5 rounded-xl border border-emerald-100/50 dark:border-emerald-900/30">
-                      <div className="flex items-center gap-3">
-                        <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold flex items-center justify-center shrink-0">
-                          {idx + 1}
-                        </span>
-                        <span className="font-bold text-sm text-gray-800 dark:text-gray-200 capitalize">{item.tanaman}</span>
-                      </div>
-                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
-                        {item.persentase}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        {/* ── AI Analyze Button ── */}
+        {onAnalyze && (
+          <button
+            onClick={onAnalyze}
+            disabled={isAnalyzing}
+            className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+          >
+            {isAnalyzing ? (
+              <><OrbitaniLoader size="sm" /><span>Menganalisis Lahan...</span></>
+            ) : (
+              <>
+                {Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0
+                  ? <ArrowClockwise size={16} weight="bold" />
+                  : <Plant size={16} weight="duotone" />}
+                <span>{Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0 ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
+              </>
             )}
+          </button>
+        )}
+
+        {/* ── Rekomendasi Tanaman AI ── */}
+        {Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0 && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center justify-between">
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <Plant size={14} weight="duotone" /> Rekomendasi Tanaman AI
+              </span>
+              <span className="text-[10px] text-gray-400">{formatDate(data.terakhir_dianalisis)}</span>
+            </div>
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {data.hasil_rekomendasi.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 capitalize">{item.tanaman}</span>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">{item.persentase}%</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ═══════════════════════════════════════════
             FEATURE 5 — Kondisi Biofisik Lahan
@@ -316,9 +300,9 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         <div>
           <div className="mb-3">
             <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-              <Hash size={16} className="text-secondary" /> Kondisi Biofisik Lahan [TEST v2]
+              <Hash size={16} className="text-secondary" /> Kondisi Biofisik Lahan
             </h4>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 ml-6">Rata-rata 10 titik sampel</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 ml-6">Rata-rata 10 titik sampel satelit</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {/* NPK Block */}
