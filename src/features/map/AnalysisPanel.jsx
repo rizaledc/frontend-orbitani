@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { 
-  X, Hash, Thermometer, Drop, CloudRain, 
-  PaperPlaneRight, Sparkle, User, SpinnerGap, Leaf 
+import {
+  X, Hash, Thermometer, Drop, CloudRain,
+  PaperPlaneRight, Sparkle, User, SpinnerGap, Leaf
 } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -29,6 +29,70 @@ const customMarkdown = {
   td: ({ children }) => <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{children}</td>,
 };
 
+// ── Field accessors — handles naming variants from the backend ──
+const getN     = (r) => r?.N    ?? r?.nitrogen    ?? r?.n    ?? null;
+const getP     = (r) => r?.P    ?? r?.fosfor       ?? r?.phosphorus ?? r?.p ?? null;
+const getK     = (r) => r?.K    ?? r?.kalium       ?? r?.potassium  ?? r?.k ?? null;
+const getPH    = (r) => r?.pH   ?? r?.ph           ?? null;
+const getTemp  = (r) => r?.temperature ?? r?.temp ?? r?.suhu ?? r?.tci ?? null;
+const getHumid = (r) => r?.humidity   ?? r?.humid ?? r?.kelembapan ?? r?.ndti ?? null;
+const getRain  = (r) => r?.rainfall   ?? r?.rain  ?? r?.curah_hujan ?? null;
+const getReko  = (r) => r?.rekomendasi ?? r?.recommendation ?? r?.label ?? '-';
+const fmt      = (v, d = 1) => v != null ? Number(v).toFixed(d) : '–';
+
+const calcStats = (arr, getter) => {
+  const vals = arr.map(getter).filter((v) => v != null);
+  if (!vals.length) return null;
+  const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+  const std  = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
+  return { min: Math.min(...vals), max: Math.max(...vals), mean, std };
+};
+
+// ── Feature 5: Status badge helpers ──
+const getNBadge = (v) => {
+  if (v == null) return null;
+  if (v < 20)  return { label: 'Sangat Rendah', cls: 'bg-red-100 text-red-700' };
+  if (v < 50)  return { label: 'Rendah',        cls: 'bg-orange-100 text-orange-700' };
+  if (v < 100) return { label: 'Sedang',         cls: 'bg-lime-100 text-lime-700' };
+  return              { label: 'Tinggi',          cls: 'bg-green-100 text-green-700' };
+};
+const getPHBadge = (v) => {
+  if (v == null) return null;
+  if (v < 5.5) return { label: 'Sangat Asam', cls: 'bg-red-100 text-red-700' };
+  if (v < 6.5) return { label: 'Optimal',     cls: 'bg-green-100 text-green-700' };
+  if (v < 7.5) return { label: 'Netral',      cls: 'bg-blue-100 text-blue-700' };
+  return              { label: 'Basa',         cls: 'bg-purple-100 text-purple-700' };
+};
+const getHumidBadge = (v) => {
+  if (v == null) return null;
+  if (v < 60) return { label: 'Kering', cls: 'bg-yellow-100 text-yellow-700' };
+  if (v < 80) return { label: 'Normal', cls: 'bg-green-100 text-green-700' };
+  return             { label: 'Tinggi', cls: 'bg-blue-100 text-blue-700' };
+};
+const getTempBadge = (v) => {
+  if (v == null) return null;
+  if (v < 20) return { label: 'Dingin',  cls: 'bg-blue-100 text-blue-700' };
+  if (v < 30) return { label: 'Optimal', cls: 'bg-green-100 text-green-700' };
+  return             { label: 'Panas',   cls: 'bg-red-100 text-red-700' };
+};
+
+const Badge = ({ badge }) =>
+  badge
+    ? <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+    : null;
+
+// ── Feature 4: Static SHAP values from notebook analysis ──
+const SHAP_DATA = [
+  { label: 'Humidity',     value: 0.0317 },
+  { label: 'N',           value: 0.0267 },
+  { label: 'K',           value: 0.0252 },
+  { label: 'Rainfall',    value: 0.0251 },
+  { label: 'P',           value: 0.0229 },
+  { label: 'Temperature', value: 0.0098 },
+  { label: 'pH',          value: 0.0046 },
+];
+const SHAP_MAX = SHAP_DATA[0].value;
+
 const AnalysisPanel = ({ data, onClose }) => {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Halo! Saya Pakar Agronomi AI. Ada yang ingin dianalisis tentang titik lahan ini?' }
@@ -41,7 +105,6 @@ const AnalysisPanel = ({ data, onClose }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isChatLoading]);
 
-  // Reset chat if data point changes completely
   useEffect(() => {
     if (data) {
       setMessages([{ role: 'assistant', content: `Halo! Mari bahas lahan **${data.nama || `Titik #${data.id}`}**. Tanyakan apapun soal kondisi tanah atau iklimnya.` }]);
@@ -50,7 +113,14 @@ const AnalysisPanel = ({ data, onClose }) => {
 
   if (!data) return null;
 
-  // Build hidden context string from active point data
+  // ── Derived: individual sample points from satellite analysis ──
+  const samples = data?.satellite_results ?? [];
+  const hasSamples = samples.length > 0;
+  const nStats = hasSamples ? calcStats(samples, getN)    : null;
+  const pStats = hasSamples ? calcStats(samples, getP)    : null;
+  const kStats = hasSamples ? calcStats(samples, getK)    : null;
+  const nMax   = nStats?.max || 1;
+
   const buildContext = () => {
     const d = data;
     return `[Konteks Lahan "${d.nama || 'Titik #' + d.id}": N=${d.nitrogen ?? '-'}, P=${d.fosfor ?? '-'}, K=${d.kalium ?? '-'}, pH=${d.ph ?? '-'}, Suhu=${d.suhu ?? '-'}°C, Kelembapan=${d.kelembapan ?? '-'}%, Curah_Hujan=${d.curah_hujan ?? '-'}mm]`;
@@ -59,24 +129,19 @@ const AnalysisPanel = ({ data, onClose }) => {
   const handleSendChat = async () => {
     const text = input.trim();
     if (!text || isChatLoading) return;
-
     const userMsg = { role: 'user', content: text };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsChatLoading(true);
-
     try {
       const contextMessage = `${buildContext()} Pertanyaan User: ${text}`;
       const response = await api.post('/api/chat/ask', { message: contextMessage });
-      
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: response.data?.answer || response.data?.response || "Maaf, terjadi kendala memproses data AI." }
+        { role: 'assistant', content: response.data?.answer || response.data?.response || 'Maaf, terjadi kendala memproses data AI.' }
       ]);
     } catch (err) {
-      if (!err.response || err.response.status !== 401) {
-        toast.error("Gagal mengirim pertanyaan ke Pakar AI.");
-      }
+      if (!err.response || err.response.status !== 401) toast.error('Gagal mengirim pertanyaan ke Pakar AI.');
     } finally {
       setIsChatLoading(false);
     }
@@ -85,36 +150,29 @@ const AnalysisPanel = ({ data, onClose }) => {
   const handleDeepAnalysis = async () => {
     if (isChatLoading) return;
     setIsChatLoading(true);
-    setMessages(prev => [...prev, { role: 'user', content: '🛰️ Minta analisis mendalam lahan ini...' }]);
-
+    setMessages((prev) => [...prev, { role: 'user', content: '🛰️ Minta analisis mendalam lahan ini...' }]);
     try {
       const deepPrompt = `${buildContext()} Analisis mendalam: evaluasi kesuburan, rekomendasi pupuk (dosis & jenis), potensi masalah, dan saran prioritas.`;
       const response = await api.post('/api/chat/ask', { message: deepPrompt });
-      
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: response.data?.answer || response.data?.response || "Analisis mendalam selesai." }
+        { role: 'assistant', content: response.data?.answer || response.data?.response || 'Analisis mendalam selesai.' }
       ]);
     } catch (err) {
-      if (!err.response || err.response.status !== 401) {
-        toast.error("Gagal melakukan analisis mendalam.");
-      }
+      if (!err.response || err.response.status !== 401) toast.error('Gagal melakukan analisis mendalam.');
     } finally {
       setIsChatLoading(false);
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!isChatLoading) handleSendChat();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!isChatLoading) handleSendChat(); }
   };
 
   return (
     <div className="absolute lg:fixed bottom-0 left-0 right-0 z-[1000] bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-tl-none shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.6)] transform transition-transform duration-300 ease-out border-t border-gray-200 dark:border-gray-800 flex flex-col h-[75vh] md:h-[65vh] lg:h-auto lg:top-16 lg:bottom-0 lg:left-auto lg:right-0 lg:w-[450px] lg:border-t-0 lg:border-l lg:rounded-none animate-slide-up lg:animate-slide-left">
-      
-      {/* Handle for mobile / Close button for Desktop */}
+
+      {/* Handle for mobile */}
       <div className="w-full flex justify-center pt-3 pb-2 lg:hidden" onClick={onClose} style={{ cursor: 'pointer' }}>
         <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full" />
       </div>
@@ -123,70 +181,218 @@ const AnalysisPanel = ({ data, onClose }) => {
       <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center flex-shrink-0">
         <div>
           <h3 className="text-lg font-bold text-neutral-text dark:text-white flex items-center gap-2">
-
             {data.nama || `Lahan #${data.id}`}
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 capitalize bg-gray-100 dark:bg-gray-800 inline-block px-2 py-0.5 rounded-full">
             {data.jenis_tanaman || 'Unknown Crop'}
           </p>
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
-        >
+        <button onClick={onClose} className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
           <X size={20} weight="bold" className="text-gray-600 dark:text-gray-300" />
         </button>
       </div>
 
       {/* Content Scrollable Area */}
       <div className="flex-1 overflow-y-auto px-5 py-6 space-y-8 custom-scrollbar">
-        
-        {/* 1. Stats Display */}
+
+        {/* ═══════════════════════════════════════════
+            FEATURE 5 — Kondisi Biofisik Lahan
+            with status badges on each metric
+            ═══════════════════════════════════════════ */}
         <div>
           <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
-            <Hash size={16} className="text-secondary" /> Data Sensor Fisik
+            <Hash size={16} className="text-secondary" /> Kondisi Biofisik Lahan
           </h4>
           <div className="grid grid-cols-2 gap-3">
             {/* NPK Block */}
             <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-gray-800 dark:to-gray-800 p-4 rounded-2xl border border-primary/10 dark:border-gray-700">
               <span className="text-xs font-bold text-primary dark:text-accent mb-2 block">Kandungan NPK</span>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Nitrogen</span>
-                <span className="font-semibold text-neutral-text dark:text-gray-200">{data.nitrogen ?? '-'} <span className="text-[10px] font-normal text-gray-400">mg/kg</span></span>
+                <span className="font-semibold text-neutral-text dark:text-gray-200 flex items-center">
+                  {data.nitrogen ?? '-'} <span className="text-[10px] font-normal text-gray-400 ml-1">mg/kg</span>
+                  <Badge badge={getNBadge(data.nitrogen)} />
+                </span>
               </div>
-              <div className="flex justify-between text-sm mt-1">
+              <div className="flex justify-between items-center text-sm mt-1">
                 <span className="text-gray-600 dark:text-gray-400">Fosfor</span>
-                <span className="font-semibold text-neutral-text dark:text-gray-200">{data.fosfor ?? '-'} <span className="text-[10px] font-normal text-gray-400">mg/kg</span></span>
+                <span className="font-semibold text-neutral-text dark:text-gray-200">
+                  {data.fosfor ?? '-'} <span className="text-[10px] font-normal text-gray-400">mg/kg</span>
+                </span>
               </div>
-              <div className="flex justify-between text-sm mt-1">
+              <div className="flex justify-between items-center text-sm mt-1">
                 <span className="text-gray-600 dark:text-gray-400">Kalium</span>
-                <span className="font-semibold text-neutral-text dark:text-gray-200">{data.kalium ?? '-'} <span className="text-[10px] font-normal text-gray-400">mg/kg</span></span>
+                <span className="font-semibold text-neutral-text dark:text-gray-200">
+                  {data.kalium ?? '-'} <span className="text-[10px] font-normal text-gray-400">mg/kg</span>
+                </span>
               </div>
             </div>
 
-            {/* Iklim Block */}
+            {/* Climate Block */}
             <div className="col-span-2 sm:col-span-1 grid grid-cols-2 gap-2">
               <div className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-2xl border border-orange-100 dark:border-orange-500/20 flex flex-col justify-center">
-                <span className="text-[10px] uppercase font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1 mb-1"><Thermometer size={14} /> pH</span>
+                <span className="text-[10px] uppercase font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1 mb-1">
+                  <Thermometer size={14} /> pH
+                </span>
                 <span className="text-lg font-bold text-orange-700 dark:text-orange-300">{data.ph ?? '-'}</span>
+                <Badge badge={getPHBadge(data.ph)} />
               </div>
               <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-2xl border border-red-100 dark:border-red-500/20 flex flex-col justify-center">
-                <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-400 flex items-center gap-1 mb-1"><Thermometer size={14} /> Suhu</span>
+                <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-400 flex items-center gap-1 mb-1">
+                  <Thermometer size={14} /> Suhu
+                </span>
                 <span className="text-lg font-bold text-red-700 dark:text-red-300">{data.suhu ? `${data.suhu}°C` : '-'}</span>
+                <Badge badge={getTempBadge(data.suhu)} />
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-500/20 flex flex-col justify-center">
-                <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-1"><Drop size={14} /> Lembab</span>
+                <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-1">
+                  <Drop size={14} /> Lembab
+                </span>
                 <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{data.kelembapan ? `${data.kelembapan}%` : '-'}</span>
+                <Badge badge={getHumidBadge(data.kelembapan)} />
               </div>
               <div className="bg-cyan-50 dark:bg-cyan-900/10 p-3 rounded-2xl border border-cyan-100 dark:border-cyan-500/20 flex flex-col justify-center">
-                <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1 mb-1"><CloudRain size={14} /> Curah Hujan</span>
+                <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1 mb-1">
+                  <CloudRain size={14} /> Curah Hujan
+                </span>
                 <span className="text-lg font-bold text-cyan-700 dark:text-cyan-300">{data.curah_hujan ? `${data.curah_hujan} mm` : '-'}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 2. AI Chat Interface */}
+        {/* ═══════════════════════════════════════════
+            FEATURE 2 — Data Per Titik Sampel
+            ═══════════════════════════════════════════ */}
+        {hasSamples && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <Leaf size={16} className="text-emerald-500" /> Data Per Titik Sampel
+            </h4>
+
+            {/* Table */}
+            <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+              <table className="min-w-full text-xs">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    {['No', 'N', 'P', 'K', 'pH', 'Suhu', 'Lembab', 'Hujan', 'Rekomendasi'].map((h) => (
+                      <th key={h} className="px-2.5 py-2 text-left font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap border-b border-gray-200 dark:border-gray-700">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {samples.map((pt, idx) => (
+                    <tr key={idx} className="even:bg-gray-50/60 dark:even:bg-gray-800/30">
+                      <td className="px-2.5 py-2 font-bold text-gray-400">{idx + 1}</td>
+                      <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getN(pt))}</td>
+                      <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getP(pt))}</td>
+                      <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getK(pt))}</td>
+                      <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getPH(pt), 2)}</td>
+                      <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getTemp(pt))}</td>
+                      <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getHumid(pt))}</td>
+                      <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getRain(pt), 0)}</td>
+                      <td className="px-2.5 py-2 font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">{getReko(pt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* NPK stats */}
+            {(nStats || pStats || kStats) && (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {[{ label: 'N', stats: nStats }, { label: 'P', stats: pStats }, { label: 'K', stats: kStats }].map(({ label, stats }) =>
+                  stats ? (
+                    <div key={label} className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{label} (mg/kg)</p>
+                      <div className="space-y-0.5 text-[11px]">
+                        <div className="flex justify-between"><span className="text-gray-500">Min</span><span className="font-semibold text-gray-700 dark:text-gray-300">{fmt(stats.min)}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500">Rata</span><span className="font-semibold text-gray-700 dark:text-gray-300">{fmt(stats.mean)}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500">Max</span><span className="font-semibold text-gray-700 dark:text-gray-300">{fmt(stats.max)}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500">Std</span><span className="font-semibold text-gray-700 dark:text-gray-300">{fmt(stats.std)}</span></div>
+                      </div>
+                    </div>
+                  ) : null
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════
+            FEATURE 3 — Distribusi Nilai N per Titik
+            ═══════════════════════════════════════════ */}
+        {hasSamples && nStats && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <Hash size={16} className="text-blue-500" /> Distribusi Nitrogen (N) per Titik
+            </h4>
+            <div className="space-y-1.5">
+              {samples.map((pt, idx) => {
+                const val = getN(pt);
+                const pct = val != null ? Math.max(2, (val / nMax) * 100) : 0;
+                return (
+                  <div key={idx} className="flex items-center gap-2 text-xs">
+                    <span className="w-5 text-right text-gray-400 font-mono shrink-0">{idx + 1}</span>
+                    <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-4 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: '#378ADD' }}
+                      />
+                    </div>
+                    <span className="w-10 text-right text-gray-600 dark:text-gray-400 font-semibold shrink-0">
+                      {fmt(val)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex items-center gap-4 text-[11px] text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-700">
+              <span>Min <b className="text-gray-700 dark:text-gray-300">{fmt(nStats.min)}</b></span>
+              <span>Mean <b className="text-gray-700 dark:text-gray-300">{fmt(nStats.mean)}</b></span>
+              <span>Max <b className="text-gray-700 dark:text-gray-300">{fmt(nStats.max)}</b></span>
+              <span>Std <b className="text-gray-700 dark:text-gray-300">{fmt(nStats.std)}</b></span>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════
+            FEATURE 4 — SHAP Feature Importance
+            ═══════════════════════════════════════════ */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-2">
+            <Sparkle size={16} weight="fill" className="text-amber-500" /> Kontribusi Fitur (SHAP)
+          </h4>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-3">
+            Nilai SHAP menunjukkan pengaruh rata-rata setiap fitur terhadap keputusan model Random Forest
+          </p>
+          <div className="space-y-1.5">
+            {SHAP_DATA.map((item) => {
+              const pct = Math.max(2, (item.value / SHAP_MAX) * 100);
+              const isHigh = item.value >= 0.023;
+              return (
+                <div key={item.label} className="flex items-center gap-2 text-xs">
+                  <span className="w-20 text-right text-gray-500 dark:text-gray-400 shrink-0">{item.label}</span>
+                  <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-4 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${pct}%`, backgroundColor: isHigh ? '#22c55e' : '#60a5fa' }}
+                    />
+                  </div>
+                  <span className="w-12 text-right text-gray-600 dark:text-gray-400 font-semibold shrink-0">
+                    {item.value.toFixed(4)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════
+            AI Chat Interface (unchanged)
+            ═══════════════════════════════════════════ */}
         <div className="flex flex-col h-[400px] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden bg-gray-50/50 dark:bg-gray-800/20 shadow-inner">
           <div className="bg-primary/5 dark:bg-primary/20 px-4 py-3 border-b border-primary/10 dark:border-primary/30 flex justify-between items-center gap-2">
             <div className="flex items-center gap-2">
@@ -201,7 +407,7 @@ const AnalysisPanel = ({ data, onClose }) => {
               Analisis Mendalam AI
             </button>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -209,24 +415,15 @@ const AnalysisPanel = ({ data, onClose }) => {
                   {msg.role === 'user' ? <User size={14} weight="bold" /> : <Sparkle size={14} weight="fill" />}
                 </div>
                 <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border ${
-                    msg.role === 'user'
-                      ? 'bg-primary text-white rounded-tr-sm border-transparent'
-                      : 'bg-white dark:bg-gray-800 text-neutral-text dark:text-gray-100 rounded-tl-sm border-gray-100 dark:border-gray-700'
-                  }`}>
-                  {msg.role === 'skeleton' ? (
-                    <div className="animate-pulse space-y-2 w-56">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                    </div>
-                  ) : msg.role === 'assistant' ? (
+                  msg.role === 'user'
+                    ? 'bg-primary text-white rounded-tr-sm border-transparent'
+                    : 'bg-white dark:bg-gray-800 text-neutral-text dark:text-gray-100 rounded-tl-sm border-gray-100 dark:border-gray-700'
+                }`}>
+                  {msg.role === 'assistant' ? (
                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={customMarkdown}>
                       {msg.content}
                     </ReactMarkdown>
-                  ) : (
-                    msg.content
-                  )}
+                  ) : msg.content}
                 </div>
               </div>
             ))}
