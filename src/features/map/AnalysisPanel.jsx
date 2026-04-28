@@ -39,6 +39,8 @@ const getK = (r) => r?.K ?? r?.kalium ?? r?.potassium ?? r?.k ?? null;
 const getPH = (r) => r?.pH ?? r?.ph ?? null;
 const getTemp = (r) => r?.temperature ?? r?.temp ?? r?.suhu ?? r?.tci ?? null;
 const getHumid = (r) => r?.humidity ?? r?.humid ?? r?.kelembapan ?? r?.ndti ?? null;
+const getLat = (r) => Array.isArray(r) ? r[1] : r?.lat ?? null;
+const getLon = (r) => Array.isArray(r) ? r[0] : r?.lon ?? r?.lng ?? null;
 const getRain = (r) => r?.rainfall ?? r?.rain ?? r?.curah_hujan ?? null;
 const getReko = (r) => r?.rekomendasi ?? r?.recommendation ?? r?.label ?? '-';
 const fmt = (v, d = 1) => v != null ? Number(v).toFixed(d) : '–';
@@ -242,66 +244,70 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
       {/* ─── Scrollable Content ─── */}
       <div className="flex-1 overflow-y-auto p-5 custom-scrollbar flex flex-col gap-6">
 
-        {/* ── Analisis Tanaman (AI) Button ── */}
-        {(() => {
-          const hasResult = Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0;
-          return (
-            <button
-              onClick={onAnalyze}
-              disabled={isAnalyzing}
-              className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shadow-sm ${
-                onAnalyze 
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-md"
-                  : "hidden"
-              }`}
-            >
-              {isAnalyzing ? (
-                <>
-                  <OrbitaniLoader size="sm" />
-                  <span>Menganalisis Lahan...</span>
-                </>
-              ) : (
-                <>
-                  {hasResult ? <ArrowClockwise size={16} weight="bold" /> : <Plant size={16} weight="duotone" />}
-                  <span>{hasResult ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
-                </>
-              )}
-            </button>
-          );
-        })()}
+        {/* ── Header Area for Analysis Action ── */}
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/10 rounded-2xl p-4 border border-emerald-200/50 dark:border-emerald-800/30 shadow-sm relative overflow-hidden">
+          {/* Decorative blur */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/10 dark:bg-emerald-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
-        {/* ── Hasil Rekomendasi Card ── */}
-        {Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0 && (
-          <div className="bg-white border border-gray-200 dark:border-gray-800 dark:bg-gray-800/30 rounded-xl shadow-sm overflow-hidden">
-            <div className="px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
-              <Plant size={16} className="text-emerald-600" weight="duotone" />
-              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 tracking-tight">Rekomendasi Tanaman AI</h3>
-            </div>
-            <ul className="divide-y divide-gray-50 dark:divide-gray-800/50">
-              {data.hasil_rekomendasi.map((item, idx) => (
-                <li key={idx} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold flex items-center justify-center shrink-0">
-                      {idx + 1}
-                    </span>
-                    <span className="text-sm font-bold text-gray-900 dark:text-gray-200">{item.tanaman}</span>
-                  </div>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 tracking-wide">
-                    {item.persentase}%
+          <div className="flex flex-col gap-4 relative z-10">
+            {/* Action Button */}
+            {(() => {
+              const hasResult = Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0;
+              if (!onAnalyze) return null;
+              return (
+                <button
+                  onClick={onAnalyze}
+                  disabled={isAnalyzing}
+                  className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shadow-sm ${
+                    isAnalyzing ? "bg-emerald-600/80 text-white cursor-not-allowed" : "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] hover:shadow-md"
+                  }`}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <OrbitaniLoader size="sm" />
+                      <span>Menganalisis Lahan...</span>
+                    </>
+                  ) : (
+                    <>
+                      {hasResult ? <ArrowClockwise size={16} weight="bold" /> : <Plant size={16} weight="duotone" />}
+                      <span>{hasResult ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
+                    </>
+                  )}
+                </button>
+              );
+            })()}
+
+            {/* Rekomendasi Card */}
+            {Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0 && (
+              <div className="pt-3 border-t border-emerald-200/50 dark:border-emerald-800/50">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-extrabold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wide">
+                    <Sparkle weight="fill" className="text-emerald-500" /> Hasil Analisis AI
+                  </h4>
+                  <span className="text-[10px] text-emerald-600/70 dark:text-emerald-500/50 font-medium">
+                    {formatDate(data.terakhir_dianalisis)}
                   </span>
-                </li>
-              ))}
-            </ul>
-            <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/50">
-              <p className="text-[11px] text-gray-400 font-medium">
-                Terakhir dianalisis:{' '}
-                <span className="text-gray-500 dark:text-gray-300 font-semibold">
-                  {formatDate(data.terakhir_dianalisis)}
-                </span>
-              </p>
-            </div>
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  {data.hasil_rekomendasi.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white/60 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 transition-colors px-3 py-2.5 rounded-xl border border-emerald-100/50 dark:border-emerald-900/30">
+                      <div className="flex items-center gap-3">
+                        <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <span className="font-bold text-sm text-gray-800 dark:text-gray-200 capitalize">{item.tanaman}</span>
+                      </div>
+                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                        {item.persentase}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* ═══════════════════════════════════════════
             FEATURE 5 — Kondisi Biofisik Lahan
@@ -391,7 +397,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
               <table className="min-w-full text-xs">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    {['No', 'N', 'P', 'K', 'pH', 'Suhu', 'Lembab', 'Hujan', 'Rekomendasi'].map((h) => (
+                    {['No', 'Lat', 'Long', 'N', 'P', 'K', 'pH', 'Suhu', 'Lembab', 'Hujan', 'Rekomendasi'].map((h) => (
                       <th key={h} className="px-2.5 py-2 text-left font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap border-b border-gray-200 dark:border-gray-700">
                         {h}
                       </th>
@@ -402,6 +408,8 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
                   {finalSamples.map((pt, idx) => (
                     <tr key={idx} className="even:bg-gray-50/60 dark:even:bg-gray-800/30">
                       <td className="px-2.5 py-2 font-bold text-gray-400">{idx + 1}</td>
+                      <td className="px-2.5 py-2 text-gray-500 dark:text-gray-400 font-mono text-[10px]">{fmt(getLat(pt), 5)}</td>
+                      <td className="px-2.5 py-2 text-gray-500 dark:text-gray-400 font-mono text-[10px]">{fmt(getLon(pt), 5)}</td>
                       <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getN(pt))}</td>
                       <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getP(pt))}</td>
                       <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getK(pt))}</td>
