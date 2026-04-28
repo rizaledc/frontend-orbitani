@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap, LayersControl, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-draw';
-import { X, MagnifyingGlass, Farm, Polygon, List, CaretLeft, Check,
+import {
+  X, MagnifyingGlass, Farm, Polygon, List, CaretLeft, Check,
   CaretUp, CaretDown, CaretRight, MagnifyingGlassPlus, MagnifyingGlassMinus, Crosshair,
   PencilSimple, Trash, Plant, ArrowClockwise
 } from '@phosphor-icons/react';
@@ -12,6 +13,7 @@ import useLahanStore from '../../store/useLahanStore';
 import { createLahan, getLahanData, deleteLahan, updateLahan } from '../../services/lahanService';
 import { getHistoryByLahan } from '../../services/historyService';
 import OrbitaniLoader from '../../components/OrbitaniLoader';
+import AnalysisPanel from './AnalysisPanel';
 
 const DrawControl = ({ isDrawingMode, setIsDrawingMode, onPolygonDrawn }) => {
   const map = useMap();
@@ -95,9 +97,8 @@ const MapNavigationPanel = ({ mapRef, defaultCenter }) => {
 
       {/* Collapsible Controls */}
       <div
-        className={`flex flex-col items-center gap-1 transition-all duration-200 origin-bottom-right ${
-          isOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-90 pointer-events-none h-0 overflow-hidden'
-        }`}
+        className={`flex flex-col items-center gap-1 transition-all duration-200 origin-bottom-right ${isOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-90 pointer-events-none h-0 overflow-hidden'
+          }`}
         role="group"
         aria-label="Kontrol Navigasi Peta"
       >
@@ -224,13 +225,13 @@ const MapDashboard = () => {
       return isNaN(n) ? null : dec != null ? n : n;
     };
     return {
-      n:           num('nitrogen')    ?? num('n'),
-      p:           num('fosfor')      ?? num('phosphorus') ?? num('p'),
-      k:           num('kalium')      ?? num('potassium')  ?? num('k'),
-      ph:          num('ph')          ?? num('pH'),
-      temperature: num('tci')         ?? num('temperature') ?? num('temp'),
-      humidity:    num('ndti')        ?? num('humidity')   ?? num('humid'),
-      rainfall:    num('rainfall')    ?? num('rain')       ?? num('curah_hujan'),
+      n: num('nitrogen') ?? num('n'),
+      p: num('fosfor') ?? num('phosphorus') ?? num('p'),
+      k: num('kalium') ?? num('potassium') ?? num('k'),
+      ph: num('ph') ?? num('pH'),
+      temperature: num('tci') ?? num('temperature') ?? num('temp'),
+      humidity: num('ndti') ?? num('humidity') ?? num('humid'),
+      rainfall: num('rainfall') ?? num('rain') ?? num('curah_hujan'),
     };
   };
 
@@ -269,9 +270,9 @@ const MapDashboard = () => {
       if (!wrapper || !wrapper.contains(document.activeElement)) return;
       if (!mapRef.current) return;
       const KEY_MAP = {
-        ArrowUp:    () => mapRef.current.panBy([0, -120]),
-        ArrowDown:  () => mapRef.current.panBy([0, 120]),
-        ArrowLeft:  () => mapRef.current.panBy([-120, 0]),
+        ArrowUp: () => mapRef.current.panBy([0, -120]),
+        ArrowDown: () => mapRef.current.panBy([0, 120]),
+        ArrowLeft: () => mapRef.current.panBy([-120, 0]),
         ArrowRight: () => mapRef.current.panBy([120, 0]),
         '+': () => mapRef.current.zoomIn(),
         '=': () => mapRef.current.zoomIn(),
@@ -320,7 +321,7 @@ const MapDashboard = () => {
 
   useEffect(() => {
     fetchLahan();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchLahan]);
 
   const handlePolygonDrawn = (geojson) => {
@@ -381,7 +382,7 @@ const MapDashboard = () => {
     setLahanList(lahanList.filter((l) => l.id !== lahan.id));
     if (selectedLahan?.id === lahan.id) setIsSlideOpen(false);
     setDeleteConfirm({ isOpen: false, lahan: null });
-    
+
     try {
       await deleteLahan(lahan.id);
       toast.success('Lahan berhasil dihapus.');
@@ -451,7 +452,7 @@ const MapDashboard = () => {
       className="relative h-full w-full bg-gray-900 overflow-hidden outline-none"
       aria-label="Peta Eksplorasi Lahan"
     >
-      
+
       {/* ─── KANVAS PETA FULLSCREEN ─── */}
       <MapContainer
         center={[-2.5, 118.0]}
@@ -547,7 +548,7 @@ const MapDashboard = () => {
                 className="w-[56px] h-[56px] bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 border border-primary-200 hover:bg-primary-hover active:scale-90 transition-all"
                 title="Selesai & Simpan Poligon"
               >
-                <Check size={24} weight="bold" /> 
+                <Check size={24} weight="bold" />
               </button>
 
               {/* Batal Button */}
@@ -584,13 +585,12 @@ const MapDashboard = () => {
       )}
 
       {/* ─── FLOATING PANEL LIST LAHAN (KIRI ATAS) ─── */}
-      <div 
-        className={`absolute top-4 md:top-6 left-4 md:left-6 z-[1000] bg-white rounded-2xl shadow-lg border border-gray-100 transition-all duration-300 overflow-hidden flex flex-col ${
-          isListMinimized ? 'w-[56px] h-[56px]' : 'w-[320px] h-[65vh] md:h-[75vh]'
-        }`}
+      <div
+        className={`absolute top-4 md:top-6 left-4 md:left-6 z-[1000] bg-white rounded-2xl shadow-lg border border-gray-100 transition-all duration-300 overflow-hidden flex flex-col ${isListMinimized ? 'w-[56px] h-[56px]' : 'w-[320px] h-[65vh] md:h-[75vh]'
+          }`}
       >
         {isListMinimized ? (
-          <button 
+          <button
             onClick={() => setIsListMinimized(false)}
             className="w-full h-full flex items-center justify-center text-gray-700 hover:text-primary transition-colors hover:bg-gray-50"
             title="Buka Daftar Lahan"
@@ -605,14 +605,14 @@ const MapDashboard = () => {
                   <List size={20} className="text-primary" weight="bold" />
                   <h2 className="text-base font-bold text-gray-900 tracking-tight">Daftar Lahan</h2>
                 </div>
-                <button 
-                  onClick={() => setIsListMinimized(true)} 
+                <button
+                  onClick={() => setIsListMinimized(true)}
                   className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <CaretLeft size={16} weight="bold" />
                 </button>
               </div>
-              
+
               <div className="relative">
                 <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -641,11 +641,10 @@ const MapDashboard = () => {
                   <div
                     key={lahan.id}
                     onClick={() => handleLahanClick(lahan)}
-                    className={`m-1 p-3 rounded-xl border cursor-pointer transition-all ${
-                      selectedLahan?.id === lahan.id
-                        ? 'bg-primary-50 border-primary-200 shadow-sm'
-                        : 'bg-white border-transparent hover:border-gray-200 hover:bg-gray-50'
-                    }`}
+                    className={`m-1 p-3 rounded-xl border cursor-pointer transition-all ${selectedLahan?.id === lahan.id
+                      ? 'bg-primary-50 border-primary-200 shadow-sm'
+                      : 'bg-white border-transparent hover:border-gray-200 hover:bg-gray-50'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center shrink-0 shadow-sm">
@@ -682,384 +681,14 @@ const MapDashboard = () => {
       </div>
 
       {/* ─── SLIDE-OVER ANALITIK KANAN ─── */}
-      <div
-        className={`absolute top-0 right-0 h-full w-full md:w-[400px] bg-white shadow-2xl border-l border-gray-100 z-[1010] transform transition-transform duration-300 ease-in-out ${
-          isSlideOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div className="h-full flex flex-col bg-white">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between shrink-0">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 truncate pr-4">{selectedLahan?.name || selectedLahan?.nama || 'Detail Lahan'}</h2>
-              <span className="text-xs text-gray-500 font-mono">ID: {selectedLahan?.id}</span>
-            </div>
-            <button
-              onClick={() => setIsSlideOpen(false)}
-              className="p-2 bg-gray-50 text-gray-500 rounded-full hover:bg-gray-100 hover:text-gray-900 transition-colors shrink-0"
-            >
-              <X size={16} weight="bold" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar space-y-6">
-            {isDataLoading ? (
-              <div className="space-y-6">
-                <div className="h-32 rounded-xl skeleton-shimmer" />
-                <div className="space-y-2">
-                  <div className="h-4 w-1/3 rounded skeleton-shimmer" />
-                  <div className="h-48 rounded-xl skeleton-shimmer" />
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* ── Analisis Tanaman (AI) Button ── */}
-                {(() => {
-                  const isThisAnalyzing = analyzingId === selectedLahan?.id;
-                  const hasResult = Array.isArray(selectedLahan?.hasil_rekomendasi) && selectedLahan.hasil_rekomendasi.length > 0;
-                  return (
-                    <button
-                      id="btn-analyze-lahan"
-                      onClick={handleAnalyzeLahan}
-                      disabled={isThisAnalyzing || !!analyzingId}
-                      className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all
-                        bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98]
-                        disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-                    >
-                      {isThisAnalyzing ? (
-                        <>
-                          <OrbitaniLoader size="sm" />
-                          <span>Menganalisis Lahan...</span>
-                        </>
-                      ) : (
-                        <>
-                          {hasResult
-                            ? <ArrowClockwise size={16} weight="bold" />
-                            : <Plant size={16} weight="duotone" />}
-                          <span>{hasResult ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
-                        </>
-                      )}
-                    </button>
-                  );
-                })()}
-
-                {/* ── Hasil Rekomendasi Card ── */}
-                {Array.isArray(selectedLahan?.hasil_rekomendasi) && selectedLahan.hasil_rekomendasi.length > 0 && (
-                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                    {/* Card Header */}
-                    <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                      <Plant size={16} className="text-emerald-600" weight="duotone" />
-                      <h3 className="text-sm font-bold text-gray-900 tracking-tight">Rekomendasi Tanaman AI</h3>
-                    </div>
-
-                    {/* Rekomendasi List */}
-                    <ul className="divide-y divide-gray-50">
-                      {selectedLahan.hasil_rekomendasi.map((item, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            {/* Rank indicator */}
-                            <span className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">
-                              {idx + 1}
-                            </span>
-                            <span className="text-sm font-bold text-gray-900">{item.tanaman}</span>
-                          </div>
-                          {/* Percentage badge */}
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 tracking-wide">
-                            {item.persentase}%
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    {/* Footer: Last analyzed timestamp */}
-                    <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/60">
-                      <p className="text-[11px] text-gray-400 font-medium">
-                        Terakhir dianalisis:{' '}
-                        <span className="text-gray-500 font-semibold">
-                          {formatDate(selectedLahan.terakhir_dianalisis)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Kondisi Biofisik Lahan (Satelit) ── */}
-                {(() => {
-                  // Priority: history rows → rata_rata_fitur from analyze → /data endpoint
-                  const biofisik =
-                    lahanBiofisik ??
-                    selectedLahan?.rata_rata_fitur ??
-                    lahanDetail?.rata_rata_fitur ??
-                    lahanDetail?.data?.rata_rata_fitur ??
-                    null;
-
-                  const hasRekomendasi =
-                    Array.isArray(selectedLahan?.hasil_rekomendasi) &&
-                    selectedLahan.hasil_rekomendasi.length > 0;
-
-                  // If no biofisik data but recommendations exist, show a
-                  // subtle placeholder so users know the section is there.
-                  if (!biofisik) {
-                    return hasRekomendasi ? (
-                      <div className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-                          Kondisi Biofisik Lahan (Satelit)
-                        </h4>
-                        <p className="text-[11px] text-gray-400">
-                          Data lingkungan belum tersedia. Coba analisis ulang untuk memperbarui.
-                        </p>
-                      </div>
-                    ) : null;
-                  }
-
-                  const fmt = (val, dec = 1) =>
-                    val != null ? Number(val).toFixed(dec) : '–';
-
-                  const metrics = [
-                    { label: 'N',           value: fmt(biofisik.n),           unit: 'mg/kg', wide: false },
-                    { label: 'P',           value: fmt(biofisik.p),           unit: 'mg/kg', wide: false },
-                    { label: 'K',           value: fmt(biofisik.k),           unit: 'mg/kg', wide: false },
-                    { label: 'pH',          value: fmt(biofisik.ph, 2),       unit: '',      wide: false },
-                    { label: 'Temp (TCI)',  value: fmt(biofisik.temperature, 2), unit: '',   wide: false },
-                    { label: 'Humid (NDTI)',value: fmt(biofisik.humidity, 2), unit: '',      wide: false },
-                    { label: 'Rainfall',    value: fmt(biofisik.rainfall),    unit: 'mm',    wide: true,
-                      accent: true },
-                  ];
-
-                  return (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-fade-in">
-                      {/* Card header — matches Rekomendasi card style */}
-                      <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                          viewBox="0 0 256 256" className="text-blue-500" fill="currentColor">
-                          <path d="M213.66,82.34l-56-56a8,8,0,0,0-11.32,0l-96,96a8,8,0,0,0,0,11.32l56,56a8,8,0,0,0,11.32,0l96-96A8,8,0,0,0,213.66,82.34ZM128,180.69,75.31,128,128,75.31,180.69,128Z"/>
-                        </svg>
-                        <div>
-                          <h3 className="text-sm font-bold text-gray-900 tracking-tight">Kondisi Biofisik Lahan</h3>
-                          <p className="text-[10px] text-gray-400 mt-0.5">Rata-rata 10 titik sampel</p>
-                        </div>
-                        <span className="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                          Satelit
-                        </span>
-                      </div>
-
-                      {/* Metrics grid */}
-                      <div className="p-4 grid grid-cols-3 gap-3">
-                        {metrics.map(({ label, value, unit, wide, accent }) => (
-                          <div
-                            key={label}
-                            className={`flex flex-col gap-0.5 rounded-lg p-2.5 ${
-                              wide ? 'col-span-3' : ''
-                            } ${
-                              accent
-                                ? 'bg-blue-50 border border-blue-100'
-                                : 'bg-gray-50 border border-gray-100'
-                            }`}
-                          >
-                            <span className={`text-[10px] font-semibold uppercase tracking-wide ${
-                              accent ? 'text-blue-500' : 'text-gray-400'
-                            }`}>
-                              {label}
-                            </span>
-                            <span className={`text-sm font-extrabold ${
-                              accent ? 'text-blue-800' : 'text-gray-900'
-                            }`}>
-                              {value}
-                              {unit && (
-                                <span className={`ml-1 text-[10px] font-normal ${
-                                  accent ? 'text-blue-400' : 'text-gray-400'
-                                }`}>
-                                  {unit}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* ═══════════════════════════════════════════
-                    FEATURE 2 — Data Per Titik Sampel
-                    ═══════════════════════════════════════════ */}
-                {(() => {
-                  const _pts =
-                    (Array.isArray(selectedLahan?.satellite_results) && selectedLahan.satellite_results.length > 0 ? selectedLahan.satellite_results : null) ??
-                    (Array.isArray(lahanDetail?.satellite_results) && lahanDetail.satellite_results.length > 0 ? lahanDetail.satellite_results : null) ??
-                    (Array.isArray(lahanDetail?.data?.satellite_results) && lahanDetail.data.satellite_results.length > 0 ? lahanDetail.data.satellite_results : null) ??
-                    (samplePoints.length > 0 ? samplePoints : null);
-                  if (!_pts) return null;
-                  const pts = _pts;
-                  const getN     = (r) => r?.N     ?? r?.nitrogen    ?? r?.n    ?? null;
-                  const getP     = (r) => r?.P     ?? r?.fosfor      ?? r?.phosphorus ?? r?.p ?? null;
-                  const getK     = (r) => r?.K     ?? r?.kalium      ?? r?.potassium  ?? r?.k ?? null;
-                  const getPH    = (r) => r?.pH    ?? r?.ph          ?? null;
-                  const getTemp  = (r) => r?.temperature ?? r?.temp  ?? r?.suhu ?? r?.tci ?? null;
-                  const getHumid = (r) => r?.humidity    ?? r?.humid ?? r?.kelembapan ?? r?.ndti ?? null;
-                  const getRain  = (r) => r?.rainfall    ?? r?.rain  ?? r?.curah_hujan ?? null;
-                  const getReko  = (r) => r?.rekomendasi ?? r?.recommendation ?? r?.label ?? '-';
-                  const fmt      = (v, d = 1) => v != null ? Number(v).toFixed(d) : '–';
-
-                  const calcStats = (arr, getter) => {
-                    const vals = arr.map(getter).filter((v) => v != null);
-                    if (!vals.length) return null;
-                    const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
-                    const std  = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
-                    return { min: Math.min(...vals), max: Math.max(...vals), mean, std };
-                  };
-
-                  const nStats = calcStats(pts, getN);
-                  const pStats = calcStats(pts, getP);
-                  const kStats = calcStats(pts, getK);
-                  const nMax   = nStats?.max || 1;
-
-                  return (
-                    <>
-                      {/* Per-point table */}
-                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" className="text-emerald-500"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg>
-                          <h3 className="text-sm font-bold text-gray-900 tracking-tight">Data Per Titik Sampel</h3>
-                          <span className="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                            {pts.length} titik
-                          </span>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-xs">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                {['No','N','P','K','pH','Suhu','Lembab','Hujan','Rekomendasi'].map((h) => (
-                                  <th key={h} className="px-2.5 py-2 text-left font-bold text-gray-400 whitespace-nowrap border-b border-gray-100">{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                              {pts.map((pt, idx) => (
-                                <tr key={idx} className="even:bg-gray-50/60 hover:bg-emerald-50/40 transition-colors">
-                                  <td className="px-2.5 py-2 font-bold text-gray-300">{idx + 1}</td>
-                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getN(pt))}</td>
-                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getP(pt))}</td>
-                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getK(pt))}</td>
-                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getPH(pt), 2)}</td>
-                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getTemp(pt))}</td>
-                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getHumid(pt))}</td>
-                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getRain(pt), 0)}</td>
-                                  <td className="px-2.5 py-2 font-semibold text-emerald-600 whitespace-nowrap">{getReko(pt)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        {/* NPK Stats row */}
-                        {(nStats || pStats || kStats) && (
-                          <div className="p-4 pt-3 grid grid-cols-3 gap-2 border-t border-gray-100 bg-gray-50/50">
-                            {[{ label: 'N', stats: nStats }, { label: 'P', stats: pStats }, { label: 'K', stats: kStats }].map(({ label, stats }) =>
-                              stats ? (
-                                <div key={label} className="bg-white rounded-lg p-2.5 border border-gray-100">
-                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{label} (mg/kg)</p>
-                                  <div className="space-y-0.5 text-[11px]">
-                                    <div className="flex justify-between"><span className="text-gray-400">Min</span><span className="font-semibold text-gray-700">{fmt(stats.min)}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-400">Rata</span><span className="font-semibold text-gray-700">{fmt(stats.mean)}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-400">Max</span><span className="font-semibold text-gray-700">{fmt(stats.max)}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-400">Std</span><span className="font-semibold text-gray-700">{fmt(stats.std)}</span></div>
-                                  </div>
-                                </div>
-                              ) : null
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* ═══ FEATURE 3 — Distribusi Nitrogen (N) ═══ */}
-                      {nStats && (
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                          <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" className="text-blue-500"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1,0-16H224A8,8,0,0,1,232,208ZM88,168a8,8,0,0,0,8-8V88a8,8,0,0,0-16,0v72A8,8,0,0,0,88,168Zm40,0a8,8,0,0,0,8-8V40a8,8,0,0,0-16,0V160A8,8,0,0,0,128,168Zm40,0a8,8,0,0,0,8-8V120a8,8,0,0,0-16,0v40A8,8,0,0,0,168,168Z"/></svg>
-                            <h3 className="text-sm font-bold text-gray-900 tracking-tight">Distribusi Nitrogen (N) per Titik</h3>
-                          </div>
-                          <div className="p-4 space-y-2">
-                            {pts.map((pt, idx) => {
-                              const val = getN(pt);
-                              const pct = val != null ? Math.max(3, (val / nMax) * 100) : 0;
-                              return (
-                                <div key={idx} className="flex items-center gap-2 text-xs">
-                                  <span className="w-5 text-right text-gray-400 font-mono shrink-0">{idx + 1}</span>
-                                  <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
-                                    <div
-                                      className="h-full rounded-full transition-all duration-500"
-                                      style={{ width: `${pct}%`, backgroundColor: '#378ADD' }}
-                                    />
-                                  </div>
-                                  <span className="w-10 text-right text-gray-600 font-semibold shrink-0">{fmt(val)}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className="mx-4 mb-4 flex items-center gap-4 text-[11px] text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                            <span>Min <b className="text-gray-700">{fmt(nStats.min)}</b></span>
-                            <span>Mean <b className="text-gray-700">{fmt(nStats.mean)}</b></span>
-                            <span>Max <b className="text-gray-700">{fmt(nStats.max)}</b></span>
-                            <span>Std <b className="text-gray-700">{fmt(nStats.std)}</b></span>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-
-                {/* ═══════════════════════════════════════════
-                    FEATURE 4 — SHAP Feature Importance
-                    ═══════════════════════════════════════════ */}
-                {(() => {
-                  const SHAP_DATA = [
-                    { label: 'Humidity',     value: 0.0317 },
-                    { label: 'N',            value: 0.0267 },
-                    { label: 'K',            value: 0.0252 },
-                    { label: 'Rainfall',     value: 0.0251 },
-                    { label: 'P',            value: 0.0229 },
-                    { label: 'Temperature',  value: 0.0098 },
-                    { label: 'pH',           value: 0.0046 },
-                  ];
-                  const SHAP_MAX = SHAP_DATA[0].value;
-                  return (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                      <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" className="text-amber-500"><path d="M197.58,129.06l-51.1-19-19-51.07a15.92,15.92,0,0,0-29.88,0L78.52,110l-51.07,19a15.92,15.92,0,0,0,0,29.88l51.07,19,19,51.07a15.92,15.92,0,0,0,29.88,0l19-51.07,51.07-19a15.92,15.92,0,0,0,0-29.88Z"/></svg>
-                        <h3 className="text-sm font-bold text-gray-900 tracking-tight">Kontribusi Fitur (SHAP)</h3>
-                      </div>
-                      <div className="p-4 space-y-2">
-                        {SHAP_DATA.map((item) => {
-                          const pct = Math.max(3, (item.value / SHAP_MAX) * 100);
-                          const isHigh = item.value >= 0.023;
-                          return (
-                            <div key={item.label} className="flex items-center gap-2 text-xs">
-                              <span className="w-20 text-right text-gray-500 shrink-0">{item.label}</span>
-                              <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full transition-all duration-500"
-                                  style={{ width: `${pct}%`, backgroundColor: isHigh ? '#22c55e' : '#60a5fa' }}
-                                />
-                              </div>
-                              <span className="w-12 text-right text-gray-600 font-semibold shrink-0">{item.value.toFixed(4)}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="mx-4 mb-4 text-[11px] text-gray-400 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                        Nilai SHAP menunjukkan pengaruh rata-rata setiap fitur terhadap keputusan model Random Forest
-                      </div>
-                    </div>
-                  );
-                })()}
-
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      {isSlideOpen && selectedLahan && (
+        <AnalysisPanel 
+          data={selectedLahan} 
+          onClose={() => setIsSlideOpen(false)} 
+          onAnalyze={handleAnalyzeLahan}
+          isAnalyzing={analyzingId === selectedLahan.id}
+        />
+      )}
 
       {/* ─── MODAL SAVE / EDIT LAHAN ─── */}
       {showSaveModal && (
@@ -1139,13 +768,13 @@ const MapDashboard = () => {
               Lahan <span className="font-bold text-gray-700">"{deleteConfirm.lahan?.name || deleteConfirm.lahan?.nama}"</span> akan dihapus permanen.
             </p>
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => setDeleteConfirm({ isOpen: false, lahan: null })}
                 className="flex-1 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
               >
                 Batal
               </button>
-              <button 
+              <button
                 onClick={confirmDelete}
                 className="flex-1 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm transition-colors"
               >

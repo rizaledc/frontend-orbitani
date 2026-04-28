@@ -1,13 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   X, Hash, Thermometer, Drop, CloudRain,
-  PaperPlaneRight, Sparkle, User, SpinnerGap, Leaf
+  PaperPlaneRight, Sparkle, User, SpinnerGap, Leaf,
+  Plant, ArrowClockwise
 } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { getLahanData } from '../../services/lahanService';
+import { formatDate } from '../../utils/format';
+import OrbitaniLoader from '../../components/OrbitaniLoader';
 
 const customMarkdown = {
   h1: ({ children }) => <h1 className="text-lg font-bold mt-2 mb-1 text-primary">{children}</h1>,
@@ -94,7 +97,7 @@ const SHAP_DATA = [
 ];
 const SHAP_MAX = SHAP_DATA[0].value;
 
-const AnalysisPanel = ({ data, onClose }) => {
+const AnalysisPanel = ({ data, onClose, onAnalyze, isAnalyzing }) => {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Halo! Saya Pakar Agronomi AI. Ada yang ingin dianalisis tentang titik lahan ini?' }
   ]);
@@ -222,8 +225,69 @@ const AnalysisPanel = ({ data, onClose }) => {
         </button>
       </div>
 
-      {/* Content Scrollable Area */}
-      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-8 custom-scrollbar">
+      {/* ─── Scrollable Content ─── */}
+      <div className="flex-1 overflow-y-auto p-5 custom-scrollbar flex flex-col gap-6">
+
+        {/* ── Analisis Tanaman (AI) Button ── */}
+        {(() => {
+          const hasResult = Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0;
+          return (
+            <button
+              onClick={onAnalyze}
+              disabled={isAnalyzing}
+              className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shadow-sm ${
+                onAnalyze 
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-md"
+                  : "hidden"
+              }`}
+            >
+              {isAnalyzing ? (
+                <>
+                  <OrbitaniLoader size="sm" />
+                  <span>Menganalisis Lahan...</span>
+                </>
+              ) : (
+                <>
+                  {hasResult ? <ArrowClockwise size={16} weight="bold" /> : <Plant size={16} weight="duotone" />}
+                  <span>{hasResult ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
+                </>
+              )}
+            </button>
+          );
+        })()}
+
+        {/* ── Hasil Rekomendasi Card ── */}
+        {Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0 && (
+          <div className="bg-white border border-gray-200 dark:border-gray-800 dark:bg-gray-800/30 rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
+              <Plant size={16} className="text-emerald-600" weight="duotone" />
+              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 tracking-tight">Rekomendasi Tanaman AI</h3>
+            </div>
+            <ul className="divide-y divide-gray-50 dark:divide-gray-800/50">
+              {data.hasil_rekomendasi.map((item, idx) => (
+                <li key={idx} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-200">{item.tanaman}</span>
+                  </div>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 tracking-wide">
+                    {item.persentase}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/50">
+              <p className="text-[11px] text-gray-400 font-medium">
+                Terakhir dianalisis:{' '}
+                <span className="text-gray-500 dark:text-gray-300 font-semibold">
+                  {formatDate(data.terakhir_dianalisis)}
+                </span>
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════
             FEATURE 5 — Kondisi Biofisik Lahan
