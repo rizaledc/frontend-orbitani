@@ -836,9 +836,10 @@ const MapDashboard = () => {
                           viewBox="0 0 256 256" className="text-blue-500" fill="currentColor">
                           <path d="M213.66,82.34l-56-56a8,8,0,0,0-11.32,0l-96,96a8,8,0,0,0,0,11.32l56,56a8,8,0,0,0,11.32,0l96-96A8,8,0,0,0,213.66,82.34ZM128,180.69,75.31,128,128,75.31,180.69,128Z"/>
                         </svg>
-                        <h3 className="text-sm font-bold text-gray-900 tracking-tight">
-                          Kondisi Biofisik Lahan
-                        </h3>
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-900 tracking-tight">Kondisi Biofisik Lahan</h3>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Rata-rata 10 titik sampel</p>
+                        </div>
                         <span className="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                           Satelit
                         </span>
@@ -884,7 +885,24 @@ const MapDashboard = () => {
                 {/* ═══════════════════════════════════════════
                     FEATURE 2 — Data Per Titik Sampel
                     ═══════════════════════════════════════════ */}
-                {samplePoints.length > 0 && (() => {
+                {(() => {
+                  // Derive sample points from every possible source
+                  const extractSamples = (obj) => {
+                    const pts =
+                      obj?.satellite_results ??
+                      obj?.titik_sampel ??
+                      obj?.data?.satellite_results ??
+                      obj?.data?.titik_sampel ??
+                      [];
+                    return Array.isArray(pts) && pts.length > 0 ? pts : null;
+                  };
+                  const activeSamplePoints =
+                    extractSamples(selectedLahan) ??
+                    extractSamples(lahanDetail) ??
+                    (samplePoints.length > 0 ? samplePoints : null);
+
+                  if (!activeSamplePoints) return null;
+                  return (() => {
                   const getN     = (r) => r?.N     ?? r?.nitrogen    ?? r?.n    ?? null;
                   const getP     = (r) => r?.P     ?? r?.fosfor      ?? r?.phosphorus ?? r?.p ?? null;
                   const getK     = (r) => r?.K     ?? r?.kalium      ?? r?.potassium  ?? r?.k ?? null;
@@ -903,9 +921,9 @@ const MapDashboard = () => {
                     return { min: Math.min(...vals), max: Math.max(...vals), mean, std };
                   };
 
-                  const nStats = calcStats(samplePoints, getN);
-                  const pStats = calcStats(samplePoints, getP);
-                  const kStats = calcStats(samplePoints, getK);
+                  const nStats = calcStats(activeSamplePoints, getN);
+                  const pStats = calcStats(activeSamplePoints, getP);
+                  const kStats = calcStats(activeSamplePoints, getK);
                   const nMax   = nStats?.max || 1;
 
                   return (
@@ -916,7 +934,7 @@ const MapDashboard = () => {
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" className="text-emerald-500"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg>
                           <h3 className="text-sm font-bold text-gray-900 tracking-tight">Data Per Titik Sampel</h3>
                           <span className="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                            {samplePoints.length} titik
+                            {activeSamplePoints.length} titik
                           </span>
                         </div>
                         <div className="overflow-x-auto">
@@ -929,7 +947,7 @@ const MapDashboard = () => {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                              {samplePoints.map((pt, idx) => (
+                              {activeSamplePoints.map((pt, idx) => (
                                 <tr key={idx} className="even:bg-gray-50/60 hover:bg-emerald-50/40 transition-colors">
                                   <td className="px-2.5 py-2 font-bold text-gray-300">{idx + 1}</td>
                                   <td className="px-2.5 py-2 text-gray-700">{fmt(getN(pt))}</td>
@@ -973,7 +991,7 @@ const MapDashboard = () => {
                             <h3 className="text-sm font-bold text-gray-900 tracking-tight">Distribusi Nitrogen (N) per Titik</h3>
                           </div>
                           <div className="p-4 space-y-2">
-                            {samplePoints.map((pt, idx) => {
+                            {activeSamplePoints.map((pt, idx) => {
                               const val = getN(pt);
                               const pct = val != null ? Math.max(3, (val / nMax) * 100) : 0;
                               return (
