@@ -95,19 +95,30 @@ const SHAP_DATA = [
 const SHAP_MAX = SHAP_DATA[0].value;
 
 const AnalysisPanel = ({ data, onClose }) => {
-  console.log('PANEL RENDERED', data?.id, data?.satellite_results?.length);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Halo! Saya Pakar Agronomi AI. Ada yang ingin dianalisis tentang titik lahan ini?' }
   ]);
   const [input, setInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [detailLahan, setDetailLahan] = useState(null);
-
-  console.log('[DEBUG] AnalysisPanel data:', data);
-  console.log('[DEBUG] satellite_results:', data?.satellite_results);
-  console.log('[DEBUG] detailLahan:', detailLahan);
+  const [samples, setSamples] = useState([]);
 
   const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (!data?.id) return;
+    const fetchSamples = async () => {
+      try {
+        const res = await api.get(`/api/lahan/${data.id}/data`);
+        const result = res.data;
+        const points = result?.satellite_results || result?.data || [];
+        setSamples(Array.isArray(points) ? points : []);
+      } catch (err) {
+        setSamples([]);
+      }
+    };
+    fetchSamples();
+  }, [data?.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -127,15 +138,9 @@ const AnalysisPanel = ({ data, onClose }) => {
   if (!data) return null;
 
   // ── Derived: individual sample points from satellite analysis ──
-  const extractSamples = (obj) => {
-    const pts = obj?.satellite_results ?? obj?.titik_sampel ?? obj?.data?.satellite_results ?? obj?.data?.titik_sampel ?? [];
-    return Array.isArray(pts) && pts.length > 0 ? pts : null;
-  };
-  const samples = extractSamples(detailLahan) ?? extractSamples(data) ?? [];
-  const hasSamples = samples.length > 0;
-  const nStats = hasSamples ? calcStats(samples, getN) : null;
-  const pStats = hasSamples ? calcStats(samples, getP) : null;
-  const kStats = hasSamples ? calcStats(samples, getK) : null;
+  const nStats = samples.length > 0 ? calcStats(samples, getN) : null;
+  const pStats = samples.length > 0 ? calcStats(samples, getP) : null;
+  const kStats = samples.length > 0 ? calcStats(samples, getK) : null;
   const nMax = nStats?.max || 1;
 
   const biofisik = detailLahan?.rata_rata_fitur ?? detailLahan?.data?.rata_rata_fitur ?? data?.rata_rata_fitur ?? data;
@@ -292,14 +297,19 @@ const AnalysisPanel = ({ data, onClose }) => {
         {/* ═══════════════════════════════════════════
             FEATURE 2 — Data Per Titik Sampel
             ═══════════════════════════════════════════ */}
-        {hasSamples && (
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
-              <Leaf size={16} className="text-emerald-500" /> Data Per Titik Sampel
-            </h4>
+        <div>
+          <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+            <Leaf size={16} className="text-emerald-500" /> Data Per Titik Sampel
+          </h4>
 
-            {/* Table */}
-            <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+          {samples.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              Data per titik belum tersedia. Lakukan analisis ulang.
+            </p>
+          ) : (
+            <>
+              {/* Table */}
+              <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
               <table className="min-w-full text-xs">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
@@ -346,20 +356,26 @@ const AnalysisPanel = ({ data, onClose }) => {
                 )}
               </div>
             )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
         {/* ═══════════════════════════════════════════
             FEATURE 3 — Distribusi Nilai N per Titik
             ═══════════════════════════════════════════ */}
-        {hasSamples && nStats && (
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
-              <Hash size={16} className="text-blue-500" /> Distribusi Nitrogen (N) per Titik
-            </h4>
-            <div className="space-y-1.5">
-              {samples.map((pt, idx) => {
-                const val = getN(pt);
+        <div>
+          <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+            <Hash size={16} className="text-blue-500" /> Distribusi Nitrogen (N) per Titik
+          </h4>
+          {samples.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              Data distribusi belum tersedia. Lakukan analisis ulang.
+            </p>
+          ) : !nStats ? null : (
+            <>
+              <div className="space-y-1.5">
+                {samples.map((pt, idx) => {
+                  const val = getN(pt);
                 const pct = val != null ? Math.max(2, (val / nMax) * 100) : 0;
                 return (
                   <div key={idx} className="flex items-center gap-2 text-xs">
@@ -383,8 +399,9 @@ const AnalysisPanel = ({ data, onClose }) => {
               <span>Max <b className="text-gray-700 dark:text-gray-300">{fmt(nStats.max)}</b></span>
               <span>Std <b className="text-gray-700 dark:text-gray-300">{fmt(nStats.std)}</b></span>
             </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
         {/* ═══════════════════════════════════════════
             FEATURE 4 — SHAP Feature Importance
