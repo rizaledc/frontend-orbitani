@@ -101,6 +101,11 @@ const AnalysisPanel = ({ data, onClose }) => {
   const [input, setInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [detailLahan, setDetailLahan] = useState(null);
+
+  console.log('[DEBUG] AnalysisPanel data:', data);
+  console.log('[DEBUG] satellite_results:', data?.satellite_results);
+  console.log('[DEBUG] detailLahan:', detailLahan);
+
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
