@@ -9,7 +9,6 @@ import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { getLahanData } from '../../services/lahanService';
-import { formatDate } from '../../utils/format';
 import OrbitaniLoader from '../../components/OrbitaniLoader';
 
 const customMarkdown = {
@@ -96,6 +95,19 @@ const SHAP_DATA = [
   { label: 'pH', value: 0.0046 },
 ];
 const SHAP_MAX = SHAP_DATA[0].value;
+
+/** Format ISO timestamp → "27 Apr 2026, 13:00" */
+const formatDate = (isoString) => {
+  if (!isoString) return '-';
+  try {
+    return new Date(isoString).toLocaleString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+  } catch {
+    return isoString;
+  }
+};
 
 const AnalysisPanel = ({ data, onClose, onAnalyze, isAnalyzing }) => {
   const [messages, setMessages] = useState([
