@@ -208,6 +208,8 @@ const MapDashboard = () => {
   const [lahanDetail, setLahanDetail] = useState(null);
   // Biofisik data extracted from the history API (most reliable source)
   const [lahanBiofisik, setLahanBiofisik] = useState(null);
+  // Per-point satellite sample data (array of 10 points)
+  const [samplePoints, setSamplePoints] = useState([]);
 
   /**
    * Normalises a raw history row into the biofisik shape expected by the card.
@@ -232,7 +234,7 @@ const MapDashboard = () => {
     };
   };
 
-  /** Fetches the most recent history row for a lahan and sets lahanBiofisik. */
+  /** Fetches the most recent history row for a lahan and sets lahanBiofisik + samplePoints. */
   const refreshBiofisik = async (lahanId) => {
     try {
       const rows = await getHistoryByLahan(lahanId);
@@ -241,13 +243,19 @@ const MapDashboard = () => {
         const sorted = [...rows].sort(
           (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
         );
-        const biofisik = mapHistoryRowToBiofisik(sorted[0]);
+        const freshRow = sorted[0];
+        const biofisik = mapHistoryRowToBiofisik(freshRow);
         setLahanBiofisik(biofisik);
+        // Extract per-point satellite_results if available
+        const pts = freshRow?.satellite_results ?? freshRow?.titik_sampel ?? [];
+        setSamplePoints(Array.isArray(pts) ? pts : []);
       } else {
         setLahanBiofisik(null);
+        setSamplePoints([]);
       }
     } catch {
       setLahanBiofisik(null);
+      setSamplePoints([]);
     }
   };
 
@@ -399,6 +407,7 @@ const MapDashboard = () => {
     setIsDataLoading(true);
     setLahanDetail(null);
     setLahanBiofisik(null);
+    setSamplePoints([]);
     // On mobile, minimize list automatically when selecting so map + slideover are visible
     if (window.innerWidth < 768) {
       setIsListMinimized(true);
@@ -407,7 +416,7 @@ const MapDashboard = () => {
       // Run both in parallel: cached /data AND history rows for this lahan
       const [detail] = await Promise.allSettled([
         getLahanData(lahan.id),
-        refreshBiofisik(lahan.id),   // sets lahanBiofisik directly
+        refreshBiofisik(lahan.id),   // sets lahanBiofisik + samplePoints directly
       ]);
       if (detail.status === 'fulfilled') setLahanDetail(detail.value);
     } catch (err) {
@@ -867,6 +876,172 @@ const MapDashboard = () => {
                             </span>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* ═══════════════════════════════════════════
+                    FEATURE 2 — Data Per Titik Sampel
+                    ═══════════════════════════════════════════ */}
+                {samplePoints.length > 0 && (() => {
+                  const getN     = (r) => r?.N     ?? r?.nitrogen    ?? r?.n    ?? null;
+                  const getP     = (r) => r?.P     ?? r?.fosfor      ?? r?.phosphorus ?? r?.p ?? null;
+                  const getK     = (r) => r?.K     ?? r?.kalium      ?? r?.potassium  ?? r?.k ?? null;
+                  const getPH    = (r) => r?.pH    ?? r?.ph          ?? null;
+                  const getTemp  = (r) => r?.temperature ?? r?.temp  ?? r?.suhu ?? r?.tci ?? null;
+                  const getHumid = (r) => r?.humidity    ?? r?.humid ?? r?.kelembapan ?? r?.ndti ?? null;
+                  const getRain  = (r) => r?.rainfall    ?? r?.rain  ?? r?.curah_hujan ?? null;
+                  const getReko  = (r) => r?.rekomendasi ?? r?.recommendation ?? r?.label ?? '-';
+                  const fmt      = (v, d = 1) => v != null ? Number(v).toFixed(d) : '–';
+
+                  const calcStats = (arr, getter) => {
+                    const vals = arr.map(getter).filter((v) => v != null);
+                    if (!vals.length) return null;
+                    const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+                    const std  = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
+                    return { min: Math.min(...vals), max: Math.max(...vals), mean, std };
+                  };
+
+                  const nStats = calcStats(samplePoints, getN);
+                  const pStats = calcStats(samplePoints, getP);
+                  const kStats = calcStats(samplePoints, getK);
+                  const nMax   = nStats?.max || 1;
+
+                  return (
+                    <>
+                      {/* Per-point table */}
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" className="text-emerald-500"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg>
+                          <h3 className="text-sm font-bold text-gray-900 tracking-tight">Data Per Titik Sampel</h3>
+                          <span className="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                            {samplePoints.length} titik
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-xs">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                {['No','N','P','K','pH','Suhu','Lembab','Hujan','Rekomendasi'].map((h) => (
+                                  <th key={h} className="px-2.5 py-2 text-left font-bold text-gray-400 whitespace-nowrap border-b border-gray-100">{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {samplePoints.map((pt, idx) => (
+                                <tr key={idx} className="even:bg-gray-50/60 hover:bg-emerald-50/40 transition-colors">
+                                  <td className="px-2.5 py-2 font-bold text-gray-300">{idx + 1}</td>
+                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getN(pt))}</td>
+                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getP(pt))}</td>
+                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getK(pt))}</td>
+                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getPH(pt), 2)}</td>
+                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getTemp(pt))}</td>
+                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getHumid(pt))}</td>
+                                  <td className="px-2.5 py-2 text-gray-700">{fmt(getRain(pt), 0)}</td>
+                                  <td className="px-2.5 py-2 font-semibold text-emerald-600 whitespace-nowrap">{getReko(pt)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {/* NPK Stats row */}
+                        {(nStats || pStats || kStats) && (
+                          <div className="p-4 pt-3 grid grid-cols-3 gap-2 border-t border-gray-100 bg-gray-50/50">
+                            {[{ label: 'N', stats: nStats }, { label: 'P', stats: pStats }, { label: 'K', stats: kStats }].map(({ label, stats }) =>
+                              stats ? (
+                                <div key={label} className="bg-white rounded-lg p-2.5 border border-gray-100">
+                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{label} (mg/kg)</p>
+                                  <div className="space-y-0.5 text-[11px]">
+                                    <div className="flex justify-between"><span className="text-gray-400">Min</span><span className="font-semibold text-gray-700">{fmt(stats.min)}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">Rata</span><span className="font-semibold text-gray-700">{fmt(stats.mean)}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">Max</span><span className="font-semibold text-gray-700">{fmt(stats.max)}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">Std</span><span className="font-semibold text-gray-700">{fmt(stats.std)}</span></div>
+                                  </div>
+                                </div>
+                              ) : null
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ═══ FEATURE 3 — Distribusi Nitrogen (N) ═══ */}
+                      {nStats && (
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                          <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" className="text-blue-500"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1,0-16H224A8,8,0,0,1,232,208ZM88,168a8,8,0,0,0,8-8V88a8,8,0,0,0-16,0v72A8,8,0,0,0,88,168Zm40,0a8,8,0,0,0,8-8V40a8,8,0,0,0-16,0V160A8,8,0,0,0,128,168Zm40,0a8,8,0,0,0,8-8V120a8,8,0,0,0-16,0v40A8,8,0,0,0,168,168Z"/></svg>
+                            <h3 className="text-sm font-bold text-gray-900 tracking-tight">Distribusi Nitrogen (N) per Titik</h3>
+                          </div>
+                          <div className="p-4 space-y-2">
+                            {samplePoints.map((pt, idx) => {
+                              const val = getN(pt);
+                              const pct = val != null ? Math.max(3, (val / nMax) * 100) : 0;
+                              return (
+                                <div key={idx} className="flex items-center gap-2 text-xs">
+                                  <span className="w-5 text-right text-gray-400 font-mono shrink-0">{idx + 1}</span>
+                                  <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full transition-all duration-500"
+                                      style={{ width: `${pct}%`, backgroundColor: '#378ADD' }}
+                                    />
+                                  </div>
+                                  <span className="w-10 text-right text-gray-600 font-semibold shrink-0">{fmt(val)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mx-4 mb-4 flex items-center gap-4 text-[11px] text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                            <span>Min <b className="text-gray-700">{fmt(nStats.min)}</b></span>
+                            <span>Mean <b className="text-gray-700">{fmt(nStats.mean)}</b></span>
+                            <span>Max <b className="text-gray-700">{fmt(nStats.max)}</b></span>
+                            <span>Std <b className="text-gray-700">{fmt(nStats.std)}</b></span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+
+                {/* ═══════════════════════════════════════════
+                    FEATURE 4 — SHAP Feature Importance
+                    ═══════════════════════════════════════════ */}
+                {(() => {
+                  const SHAP_DATA = [
+                    { label: 'Humidity',     value: 0.0317 },
+                    { label: 'N',            value: 0.0267 },
+                    { label: 'K',            value: 0.0252 },
+                    { label: 'Rainfall',     value: 0.0251 },
+                    { label: 'P',            value: 0.0229 },
+                    { label: 'Temperature',  value: 0.0098 },
+                    { label: 'pH',           value: 0.0046 },
+                  ];
+                  const SHAP_MAX = SHAP_DATA[0].value;
+                  return (
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                      <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" className="text-amber-500"><path d="M197.58,129.06l-51.1-19-19-51.07a15.92,15.92,0,0,0-29.88,0L78.52,110l-51.07,19a15.92,15.92,0,0,0,0,29.88l51.07,19,19,51.07a15.92,15.92,0,0,0,29.88,0l19-51.07,51.07-19a15.92,15.92,0,0,0,0-29.88Z"/></svg>
+                        <h3 className="text-sm font-bold text-gray-900 tracking-tight">Kontribusi Fitur (SHAP)</h3>
+                      </div>
+                      <div className="p-4 space-y-2">
+                        {SHAP_DATA.map((item) => {
+                          const pct = Math.max(3, (item.value / SHAP_MAX) * 100);
+                          const isHigh = item.value >= 0.023;
+                          return (
+                            <div key={item.label} className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-right text-gray-500 shrink-0">{item.label}</span>
+                              <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${pct}%`, backgroundColor: isHigh ? '#22c55e' : '#60a5fa' }}
+                                />
+                              </div>
+                              <span className="w-12 text-right text-gray-600 font-semibold shrink-0">{item.value.toFixed(4)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mx-4 mb-4 text-[11px] text-gray-400 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                        Nilai SHAP menunjukkan pengaruh rata-rata setiap fitur terhadap keputusan model Random Forest
                       </div>
                     </div>
                   );
