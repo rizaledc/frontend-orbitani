@@ -3,7 +3,7 @@ import logger from '../../utils/logger';
 import {
   X, Hash, Thermometer, Drop, CloudRain,
   PaperPlaneRight, Sparkle, User, SpinnerGap, LeafIcon,
-  PlantIcon, ArrowClockwiseIcon
+  PlantIcon, ArrowClockwiseIcon, ClockIcon
 } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -297,6 +297,16 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
           {(data.keterangan || data.deskripsi) && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
               {data.keterangan || data.deskripsi}
+            </p>
+          )}
+          {(data.terakhir_dianalisis || data.last_analyzed_at) && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 flex items-center gap-1">
+              <ClockIcon size={11} weight="regular" />
+              Analisis terakhir:{' '}
+              {new Date(data.terakhir_dianalisis || data.last_analyzed_at).toLocaleString('id-ID', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+              })}
             </p>
           )}
         </div>
