@@ -119,6 +119,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [detailLahan, setDetailLahan] = useState(null);
   const [samples, setSamples] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const messagesEndRef = useRef(null);
 
@@ -151,7 +152,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
       }
     };
     fetchSamples();
-  }, [data?.id]);
+  }, [data?.id, refreshKey]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -280,7 +281,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
           const hasResult = recos.length > 0;
           return (
             <button
-              onClick={onAnalyze}
+              onClick={async () => { await onAnalyze?.(); setRefreshKey((prev) => prev + 1); }}
               disabled={isAnalyzing}
               className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
             >
