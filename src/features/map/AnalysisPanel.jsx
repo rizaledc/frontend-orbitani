@@ -304,50 +304,14 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
           );
         })()}
 
-        {/* ── TOP 3 Rekomendasi dari titik sampel ── */}
-        {(() => {
-          const counts = {};
-          finalSamples.forEach((pt) => {
-            const r = getReko(pt);
-            if (r && r !== '-') counts[r] = (counts[r] || 0) + 1;
-          });
-          const top3 = Object.entries(counts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
-            .map(([tanaman, count]) => ({ tanaman, pct: Math.round((count / finalSamples.length) * 100) }));
-          const colors = [
-            { bar: '#16a34a', badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' },
-            { bar: '#2563eb', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
-            { bar: '#9333ea', badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' },
-          ];
-          return (
-            <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 overflow-hidden">
-              <div className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center gap-2">
-                <PlantIcon size={14} weight="duotone" className="text-emerald-600 dark:text-emerald-400" />
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Rekomendasi Tanaman</span>
-                {top3.length > 0 && <span className="ml-auto text-[10px] text-gray-400">dari {finalSamples.length} titik</span>}
-              </div>
-              {top3.length === 0 ? (
-                <p className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 italic">
-                  Belum dianalisis — klik tombol di atas untuk memulai.
-                </p>
-              ) : (
-                <div className="px-4 py-3 flex flex-col gap-2.5">
-                  {top3.map(({ tanaman, pct }, idx) => (
-                    <div key={tanaman} className="flex items-center gap-3">
-                      <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${colors[idx].badge}`}>{idx + 1}</span>
-                      <span className="w-24 text-sm font-semibold text-gray-800 dark:text-gray-200 capitalize shrink-0">{tanaman}</span>
-                      <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: colors[idx].bar }} />
-                      </div>
-                      <span className="w-10 text-right text-xs font-bold shrink-0" style={{ color: colors[idx].bar }}>{pct}%</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        {/* ── Rekomendasi Tanaman ── */}
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 overflow-hidden">
+          <div className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center gap-2">
+            <PlantIcon size={14} weight="duotone" className="text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Rekomendasi Tanaman</span>
+          </div>
+          <p className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 italic">None</p>
+        </div>
 
         {/* ═══════════════════════════════════════════
             FEATURE 5 — Kondisi Biofisik Lahan
