@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import logger from '../utils/logger';
 import toast from 'react-hot-toast';
 import { getAllLahan, analyzeLahanSpatial } from '../services/lahanService';
 
@@ -32,7 +33,7 @@ const useLahanStore = create((set, get) => ({
       const data = await getAllLahan();
       set({ lahanList: Array.isArray(data) ? data : [] });
     } catch (err) {
-      console.error('[useLahanStore] fetchLahan error:', err);
+      logger.error('[useLahanStore] fetchLahan error:', err);
       set({ lahanList: [] });
     } finally {
       set({ isLoading: false });

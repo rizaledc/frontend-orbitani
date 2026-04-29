@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import logger from '../../utils/logger';
 import {
   X, Hash, Thermometer, Drop, CloudRain,
   PaperPlaneRight, Sparkle, User, SpinnerGap, LeafIcon,
@@ -132,7 +133,6 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
           }}
         );
         const result = await res.json();
-        console.log('RAW RESPONSE:', JSON.stringify(result));
 
         // Deduplicate: keep only the 10 most-recent satellite points for THIS lahan
         const rawPoints = Array.isArray(result?.satellite_data) ? result.satellite_data
@@ -148,7 +148,6 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         const points = allPoints
           .filter((p) => p.created_at?.startsWith(latestDate) || allPoints.length <= 10)
           .slice(0, 10);
-        console.log('POINTS FIXED:', points.length, points[0]);
         setSamples(points);
         onSamplesLoaded?.(points);
 
@@ -178,7 +177,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
       setDetailLahan(null);
       getLahanData(data.id)
         .then(res => setDetailLahan(res))
-        .catch(err => console.error("Gagal memuat detail:", err));
+        .catch(err => logger.error("Gagal memuat detail:", err));
     }
   }, [data?.id]);
 

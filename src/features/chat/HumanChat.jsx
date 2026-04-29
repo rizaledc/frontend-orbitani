@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import logger from '../../utils/logger';
 import { Headset, PaperPlaneRight, UserCircle, SpinnerGap } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -50,7 +51,7 @@ const HumanChat = () => {
               return [...prev, newMsg];
             });
           }
-        } catch(e) { console.error("WS Parse error", e); }
+        } catch(e) { logger.error("WS Parse error", e); }
       };
 
       ws.onerror = () => {
@@ -65,7 +66,7 @@ const HumanChat = () => {
           const delay = Math.pow(2, retryCount) * 1000;
           retryTimeout = setTimeout(connect, delay);
         } else {
-          console.warn('WebSocket: Endpoint chat-live tidak tersedia. Fitur real-time dinonaktifkan.');
+          logger.warn('WebSocket: Endpoint chat-live tidak tersedia. Fitur real-time dinonaktifkan.');
         }
       };
     };
@@ -101,7 +102,7 @@ const HumanChat = () => {
       const res = await api.get('/api/chat-live/contacts');
       setContacts(res.data?.data || res.data || []);
     } catch (err) {
-      console.warn("Backend chat-live contacts belum siap. Menggunakan Dummy Data.");
+      logger.warn("Backend chat-live contacts belum siap. Menggunakan Dummy Data.");
       if (myRole === 'user') {
         setContacts([
           { id: 2, username: "admin_jabar", role: "admin", name: "Admin Jawa Barat" }
@@ -124,7 +125,7 @@ const HumanChat = () => {
       const res = await api.get(`/api/chat-live/messages/${contactId}`);
       setMessages(res.data?.data || res.data || []);
     } catch (err) {
-      if (!silent) console.warn("Backend messages belum siap. Menggunakan Dummy Data.");
+      if (!silent) logger.warn("Backend messages belum siap. Menggunakan Dummy Data.");
       setMessages([
         { id: 101, sender_id: contactId, receiver_id: user.id, message_text: "Halo, ada yang bisa saya bantu terkait lahan Anda?", timestamp: new Date(Date.now() - 3600000).toISOString() },
         { id: 102, sender_id: user.id, receiver_id: contactId, message_text: "Iya admin, indikator nitrogen saya terus menurun walau sudah dipupuk.", timestamp: new Date(Date.now() - 3500000).toISOString() }

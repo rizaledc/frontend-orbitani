@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import logger from '../../utils/logger';
 import { MapContainer, TileLayer, GeoJSON, useMap, LayersControl, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-draw';
@@ -157,7 +158,7 @@ const MapController = ({ selectedGeoJson }) => {
           map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
         }
       } catch (err) {
-        console.error("Bounds error", err);
+        logger.error("Bounds error", err);
       }
     }
   }, [selectedGeoJson, map]);
@@ -425,7 +426,7 @@ const MapDashboard = () => {
       ]);
       if (detail.status === 'fulfilled') setLahanDetail(detail.value);
     } catch (err) {
-      console.error('[MapDashboard] getLahanData error:', err);
+      logger.error('[MapDashboard] getLahanData error:', err);
     } finally {
       setIsDataLoading(false);
     }

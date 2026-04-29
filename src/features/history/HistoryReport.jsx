@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import logger from '../../utils/logger';
 import { DownloadSimple, SpinnerGap, HardDrives } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -62,7 +63,7 @@ const HistoryReport = () => {
       const rawData = res.data?.data || res.data || [];
       setData(Array.isArray(rawData) ? rawData.map(mapRowData) : []);
     } catch (err) {
-      console.error('[HistoryReport] fetchHistory error:', err);
+      logger.error('[HistoryReport] fetchHistory error:', err);
 
       // Fallback dummy data jika backend belum siap
       if (!err.response || err.response.status === 404 || err.response.status === 500) {

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import logger from '../../utils/logger';
 import { MapContainer as LeafletMap, TileLayer, CircleMarker, Popup, LayersControl, useMap } from 'react-leaflet';
 import {
   GlobeHemisphereWest, SpinnerGap,
@@ -132,7 +133,7 @@ const MapContainer = () => {
         return list.find((p) => p.id === prev.id) ?? prev;
       });
     } catch (err) {
-      console.error('Gagal memuat point lahan', err);
+      logger.error('Gagal memuat point lahan', err);
     } finally {
       setIsLoading(false);
     }

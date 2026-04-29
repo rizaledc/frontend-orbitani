@@ -1,3 +1,4 @@
+import logger from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { Cpu, ArrowClockwise, CheckCircle, XCircle, WarningCircle, Table, Lightning, Pulse } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
@@ -31,7 +32,7 @@ const MLOpsDashboard = () => {
       const data = await getFeedbackList();
       setFeedbackList(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsLoadingFeedback(false);
     }
@@ -43,7 +44,7 @@ const MLOpsDashboard = () => {
       const data = await getLLMStatus();
       setLlmStatus(data);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsLoadingLLM(false);
     }
@@ -55,7 +56,7 @@ const MLOpsDashboard = () => {
       await triggerModelTraining();
       toast.success('Proses retraining model berhasil dipicu. Proses berjalan di background.');
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsTraining(false);
     }
@@ -76,7 +77,7 @@ const MLOpsDashboard = () => {
       setFeedbackForm({ lahan_id: '', actual_n: '', actual_p: '', actual_k: '', rating: 5 });
       fetchFeedback();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 

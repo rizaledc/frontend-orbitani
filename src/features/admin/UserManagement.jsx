@@ -1,3 +1,4 @@
+import logger from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import {
   Users, Trash, ShieldStar, User as UserIcon, ShieldChevron,
@@ -73,7 +74,7 @@ const UserManagement = () => {
       setUsers(Array.isArray(usersData.value?.data || usersData.value) ? (usersData.value?.data || usersData.value) : []);
       if (statsData.status === 'fulfilled') setStats(statsData.value);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsLoading(false);
     }

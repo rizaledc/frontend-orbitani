@@ -1,3 +1,4 @@
+import logger from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { Plus, Trash, Users, Eye, X, WarningCircle, Buildings, MagnifyingGlass } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
@@ -37,7 +38,7 @@ const OrganizationList = () => {
       setOrganizations(data);
     } catch (err) {
       // Errors handled globally by api.js, but we can catch here if needed
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +56,7 @@ const OrganizationList = () => {
       setIsAddModalOpen(false);
       fetchOrganizations(); // Refresh
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsSubmitting(false);
     }
@@ -76,7 +77,7 @@ const OrganizationList = () => {
       setSelectedOrg(null);
       fetchOrganizations(); // Refresh
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +93,7 @@ const OrganizationList = () => {
       const data = await getOrganizationUsers(org.id);
       setOrgUsers(data);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error('Gagal mengambil daftar pengguna organisasi.');
       setIsUsersModalOpen(false);
     } finally {

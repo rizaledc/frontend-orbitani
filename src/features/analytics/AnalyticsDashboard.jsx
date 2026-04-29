@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import logger from '../../utils/logger';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
@@ -62,7 +63,7 @@ const AnalyticsDashboard = () => {
       const res = await api.get('/api/lahan/analytics');
       setData(res.data?.data || res.data || []);
     } catch (err) {
-      console.warn("Analytics API Error:", err);
+      logger.warn("Analytics API Error:", err);
       // Fallback data if backend is not ready
       if (!err.response || err.response.status === 404) {
         const dummyData = Array.from({ length: 10 }).map((_, i) => ({

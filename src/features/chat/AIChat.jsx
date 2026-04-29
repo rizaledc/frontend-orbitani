@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import logger from '../../utils/logger';
 import { Sparkle, User, PaperPlaneRight, CircleNotch, GearSix, Eye, EyeSlash, Key, Trash, X, Info, Plus, ClockCounterClockwise, CaretDoubleLeft, ChatTeardropText, PencilSimple, Check } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -131,7 +132,7 @@ const AIChat = () => {
       const data = await getAllLahan();
       setLahanOptions(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Failed fetching lahan:', err);
+      logger.error('Failed fetching lahan:', err);
     }
   };
 
@@ -140,7 +141,7 @@ const AIChat = () => {
       const data = await fetchChatSessions();
       setSessions(data || []);
     } catch (err) {
-      console.error('Failed fetching sessions:', err);
+      logger.error('Failed fetching sessions:', err);
     }
   };
 
@@ -163,7 +164,7 @@ const AIChat = () => {
         setMessages([GREETING_MESSAGE]);
       }
     } catch (err) {
-      console.error('Failed to load chat history:', err);
+      logger.error('Failed to load chat history:', err);
       setMessages([GREETING_MESSAGE]);
     } finally {
       setIsLoadingHistory(false);
@@ -287,7 +288,7 @@ const AIChat = () => {
         .then(() => {
           if (isNewSession) loadSessions();
         })
-        .catch((err) => console.warn('Failed to save user msg:', err));
+        .catch((err) => logger.warn('Failed to save user msg:', err));
 
       // Step C: Call Gemini AI
       let responseData;
@@ -307,10 +308,10 @@ const AIChat = () => {
 
       // Step E: Persist AI response — ALWAYS pass title to prevent null overwrite
       saveChatMessage('ai', aiContent, activeSessionId, activeTitle)
-        .catch((err) => console.warn('Failed to save AI msg:', err));
+        .catch((err) => logger.warn('Failed to save AI msg:', err));
 
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsLoading(false);
     }
