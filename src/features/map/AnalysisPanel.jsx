@@ -191,6 +191,23 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
   const kStats = finalSamples.length > 0 ? calcStats(finalSamples, getK) : null;
   const nMax = nStats?.max || 1;
 
+  // ── TOP 3 rekomendasi dari titik sampel ──
+  const rekoCounts = {};
+  finalSamples.forEach((pt) => {
+    const r = getReko(pt);
+    if (r && r !== '-') rekoCounts[r] = (rekoCounts[r] || 0) + 1;
+  });
+  const top3Reko = Object.entries(rekoCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([tanaman, count]) => ({ tanaman, pct: Math.round((count / finalSamples.length) * 100) }));
+  const rekoBarColors = ['#16a34a', '#2563eb', '#9333ea'];
+  const rekoRankColors = [
+    { bg: '#dcfce7', color: '#166534' },
+    { bg: '#dbeafe', color: '#1e40af' },
+    { bg: '#f3e8ff', color: '#6b21a8' },
+  ];
+
   const biofisik = lahanBiofisik ?? lahanDetail?.rata_rata_fitur ?? lahanDetail?.data?.rata_rata_fitur ?? detailLahan?.rata_rata_fitur ?? detailLahan?.data?.rata_rata_fitur ?? data?.rata_rata_fitur ?? data;
   const bioN = biofisik?.nitrogen ?? biofisik?.N ?? biofisik?.n ?? data?.nitrogen;
   const bioP = biofisik?.fosfor ?? biofisik?.P ?? biofisik?.p ?? data?.fosfor;
@@ -374,56 +391,34 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         </div>
 
         {/* ── Rekomendasi Tanaman TOP 3 ── */}
-        {(() => {
-          const counts = {};
-          finalSamples.forEach((pt) => {
-            const r = getReko(pt);
-            if (r && r !== '-') counts[r] = (counts[r] || 0) + 1;
-          });
-          const top3 = Object.entries(counts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
-            .map(([tanaman, count]) => ({
-              tanaman,
-              pct: Math.round((count / finalSamples.length) * 100),
-            }));
-          const barColors = ['#16a34a', '#2563eb', '#9333ea'];
-          const rankColors = [
-            { bg: '#dcfce7', color: '#166534' },
-            { bg: '#dbeafe', color: '#1e40af' },
-            { bg: '#f3e8ff', color: '#6b21a8' },
-          ];
-          return (
-            <div style={{ background: '#ecfdf5', border: '2px solid #10b981', borderRadius: '12px', overflow: 'hidden' }}>
-              <div style={{ borderBottom: '1px solid #a7f3d0', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#065f46' }}>🌱 Rekomendasi Tanaman</span>
-                {top3.length > 0 && (
-                  <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#9ca3af' }}>dari {finalSamples.length} titik</span>
-                )}
-              </div>
-              <div style={{ padding: '12px 16px' }}>
-                {top3.length === 0 ? (
-                  <p style={{ color: '#9ca3af', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>
-                    Belum dianalisis — klik tombol di atas untuk memulai.
-                  </p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {top3.map(({ tanaman, pct }, idx) => (
-                      <div key={tanaman} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ width: 20, height: 20, borderRadius: '50%', background: rankColors[idx].bg, color: rankColors[idx].color, fontSize: 10, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{idx + 1}</span>
-                        <span style={{ width: 90, fontSize: 13, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize', flexShrink: 0 }}>{tanaman}</span>
-                        <div style={{ flex: 1, background: '#d1fae5', borderRadius: 999, height: 8, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: barColors[idx], borderRadius: 999, transition: 'width 0.4s' }} />
-                        </div>
-                        <span style={{ width: 36, textAlign: 'right', fontSize: 12, fontWeight: 'bold', color: barColors[idx], flexShrink: 0 }}>{pct}%</span>
-                      </div>
-                    ))}
+        <div style={{ background: '#ecfdf5', border: '2px solid #10b981', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ borderBottom: '1px solid #a7f3d0', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#065f46' }}>🌱 Rekomendasi Tanaman</span>
+            {top3Reko.length > 0 && (
+              <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#9ca3af' }}>dari {finalSamples.length} titik</span>
+            )}
+          </div>
+          <div style={{ padding: '12px 16px' }}>
+            {top3Reko.length === 0 ? (
+              <p style={{ color: '#9ca3af', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>
+                Belum dianalisis — klik tombol di atas untuk memulai.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {top3Reko.map(({ tanaman, pct }, idx) => (
+                  <div key={tanaman} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ width: 20, height: 20, borderRadius: '50%', background: rekoRankColors[idx].bg, color: rekoRankColors[idx].color, fontSize: 10, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{idx + 1}</span>
+                    <span style={{ width: 90, fontSize: 13, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize', flexShrink: 0 }}>{tanaman}</span>
+                    <div style={{ flex: 1, background: '#d1fae5', borderRadius: 999, height: 8, overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: rekoBarColors[idx], borderRadius: 999, transition: 'width 0.4s' }} />
+                    </div>
+                    <span style={{ width: 36, textAlign: 'right', fontSize: 12, fontWeight: 'bold', color: rekoBarColors[idx], flexShrink: 0 }}>{pct}%</span>
                   </div>
-                )}
+                ))}
               </div>
-            </div>
-          );
-        })()}
+            )}
+          </div>
+        </div>
 
         {/* ═══════════════════════════════════════════
             FEATURE 2 — Data Per Titik Sampel
