@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   X, Hash, Thermometer, Drop, CloudRain,
-  PaperPlaneRight, Sparkle, User, SpinnerGap, Leaf,
-  Plant, ArrowClockwise
+  PaperPlaneRight, Sparkle, User, SpinnerGap, LeafIcon,
+  PlantIcon, ArrowClockwiseIcon
 } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -303,7 +303,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
                 <><OrbitaniLoader size="sm" /><span>Menganalisis Lahan...</span></>
               ) : (
                 <>
-                  {hasResult ? <ArrowClockwise size={16} weight="bold" /> : <Plant size={16} weight="duotone" />}
+                  {hasResult ? <ArrowClockwiseIcon size={16} weight="bold" /> : <PlantIcon size={16} weight="duotone" />}
                   <span>{hasResult ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
                 </>
               )}
@@ -319,7 +319,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                  <Plant size={14} weight="duotone" /> Rekomendasi Tanaman AI
+                  <PlantIcon size={14} weight="duotone" /> Rekomendasi Tanaman AI
                 </span>
                 <span className="text-[10px] text-gray-400">{formatDate(data.terakhir_dianalisis)}</span>
               </div>
@@ -412,7 +412,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
             ═══════════════════════════════════════════ */}
         <div>
           <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
-            <Leaf size={16} className="text-emerald-500" /> Data Per Titik Sampel
+            <LeafIcon size={16} className="text-emerald-500" /> Data Per Titik Sampel
           </h4>
 
           {finalSamples.length === 0 ? (
