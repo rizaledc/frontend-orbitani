@@ -293,8 +293,6 @@ const MapDashboard = () => {
     if (!selectedLahan) return;
     const updated = await analyzeLahan(selectedLahan.id);
     if (updated) {
-      // Try to surface rata_rata_fitur from every possible path in the
-      // analyze response before falling back to a /data re-fetch.
       const rrfFromAnalyze =
         updated.rata_rata_fitur ??
         updated.data?.rata_rata_fitur ??
@@ -302,10 +300,18 @@ const MapDashboard = () => {
         updated.rata_rata ??
         null;
 
+      // Surface hasil_rekomendasi — backend may return it flat or nested
+      const rekoFromAnalyze =
+        updated.hasil_rekomendasi ??
+        updated.lahan?.hasil_rekomendasi ??
+        updated.data?.hasil_rekomendasi ??
+        null;
+
       setSelectedLahan((prev) => ({
         ...prev,
         ...updated,
         ...(rrfFromAnalyze ? { rata_rata_fitur: rrfFromAnalyze } : {}),
+        ...(rekoFromAnalyze ? { hasil_rekomendasi: rekoFromAnalyze } : {}),
       }));
 
       // Refresh biofisik from history (most reliable source)

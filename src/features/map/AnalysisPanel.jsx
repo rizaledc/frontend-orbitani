@@ -158,8 +158,10 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         console.log('POINTS FIXED:', points.length, points[0]);
         setSamples(points);
 
-        // Extract recommendations from response
-        const reko = result?.lahan?.hasil_rekomendasi || [];
+        // Extract recommendations — backend may nest under lahan, data, or flat
+        const reko = result?.lahan?.hasil_rekomendasi ||
+                     result?.hasil_rekomendasi ||
+                     result?.data?.hasil_rekomendasi || [];
         setRekomendasi(Array.isArray(reko) ? reko : []);
       } catch (err) {
         setSamples([]);
@@ -258,6 +260,8 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
 
   const getRecos = (d) => {
     if (Array.isArray(d?.hasil_rekomendasi) && d.hasil_rekomendasi.length > 0) return d.hasil_rekomendasi;
+    if (Array.isArray(d?.lahan?.hasil_rekomendasi) && d.lahan.hasil_rekomendasi.length > 0) return d.lahan.hasil_rekomendasi;
+    if (Array.isArray(d?.data?.hasil_rekomendasi) && d.data.hasil_rekomendasi.length > 0) return d.data.hasil_rekomendasi;
     if (Array.isArray(d?.ai_recommendation) && d.ai_recommendation.length > 0) return d.ai_recommendation;
     if (typeof d?.ai_recommendation === 'string' && d.ai_recommendation) return [{ tanaman: d.ai_recommendation, persentase: 100 }];
     if (typeof d?.crop_recommendation === 'string' && d.crop_recommendation) return [{ tanaman: d.crop_recommendation, persentase: 100 }];

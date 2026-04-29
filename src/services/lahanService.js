@@ -30,7 +30,7 @@ export const createLahan = async (lahanData) => {
  * Jika `lat` & `lon` disertakan, backend akan melakukan live fetch ke GEE (latensi tinggi).
  */
 export const getLahanData = async (lahanId, params = {}) => {
-  const response = await api.get(`/lahan/${lahanId}/data`, { params, timeout: 60000 });
+  const response = await api.get(`/api/lahan/${lahanId}/data`, { params, timeout: 60000 });
   return response.data;
 };
 
@@ -60,7 +60,8 @@ export const updateLahan = async (lahanId, lahanData) => {
  */
 export const analyzeLahanSpatial = async (lahanId) => {
   const response = await api.post(`/api/lahan/${lahanId}/analyze`, {}, { timeout: 90000 });
-  // Unwrap backend envelope if it exists: { status: "success", data: {...lahan} }
-  return response.data?.data || response.data;
+  const body = response.data;
+  // Backend wraps in { status, data: {...lahan} } OR { status, lahan: {...}, satellite_data: [...] }
+  return body?.data || body?.lahan || body;
 };
 
