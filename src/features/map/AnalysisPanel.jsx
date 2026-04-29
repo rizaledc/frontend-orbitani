@@ -293,6 +293,11 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
           <h3 className="text-lg font-bold text-neutral-text dark:text-white flex items-center gap-2">
             {data.nama || `Lahan #${data.id}`}
           </h3>
+          {(data.keterangan || data.deskripsi) && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+              {data.keterangan || data.deskripsi}
+            </p>
+          )}
         </div>
         <button onClick={onClose} className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
           <X size={20} weight="bold" className="text-gray-600 dark:text-gray-300" />
