@@ -114,6 +114,8 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
 
   useEffect(() => {
     if (!data?.id) return;
+    setSamples([]);
+    setRekomendasi([]);
     const fetchSamples = async () => {
       try {
         const backendUrl = import.meta.env.VITE_API_URL ||

@@ -407,6 +407,7 @@ const MapDashboard = () => {
     setLahanDetail(null);
     setLahanBiofisik(null);
     setSamplePoints([]);
+    setMapSamplePoints([]);
     // On mobile, minimize list automatically when selecting so map + slideover are visible
     if (window.innerWidth < 768) {
       setIsListMinimized(true);
