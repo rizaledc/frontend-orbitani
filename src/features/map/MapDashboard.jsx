@@ -214,44 +214,34 @@ const MapDashboard = () => {
   // Sample points with lat/lon for map visualization (red dots)
   const [mapSamplePoints, setMapSamplePoints] = useState([]);
 
-  /**
-   * Normalises a raw history row into the biofisik shape expected by the card.
-   * Mirrors the mapRowData logic in HistoryReport so key variants from the
-   * backend are all handled consistently.
-   */
-  const mapHistoryRowToBiofisik = (row) => {
-    if (!row) return null;
-    const src = row.satellite_results || row.data || row;
-    const num = (v, dec) => {
-      const n = Number(src[v] ?? row[v]);
-      return isNaN(n) ? null : dec != null ? n : n;
-    };
-    return {
-      n: num('nitrogen') ?? num('n'),
-      p: num('fosfor') ?? num('phosphorus') ?? num('p'),
-      k: num('kalium') ?? num('potassium') ?? num('k'),
-      ph: num('ph') ?? num('pH'),
-      temperature: num('tci') ?? num('temperature') ?? num('temp'),
-      humidity: num('ndti') ?? num('humidity') ?? num('humid'),
-      rainfall: num('rainfall') ?? num('rain') ?? num('curah_hujan'),
-    };
-  };
-
-  /** Fetches the most recent history row for a lahan and sets lahanBiofisik + samplePoints. */
+  /** Fetches the most recent history rows for a lahan and sets lahanBiofisik + samplePoints.
+   *  Each analysis produces 10 individual rows in satellite_results. We group by the
+   *  latest batch (same date) and average their values for the biofisik card. */
   const refreshBiofisik = async (lahanId) => {
     try {
       const rows = await getHistoryByLahan(lahanId);
       if (Array.isArray(rows) && rows.length > 0) {
-        // Sort descending by created_at and take the freshest row
         const sorted = [...rows].sort(
           (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
         );
-        const freshRow = sorted[0];
-        const biofisik = mapHistoryRowToBiofisik(freshRow);
-        setLahanBiofisik(biofisik);
-        // Extract per-point satellite_results if available
-        const pts = freshRow?.satellite_results ?? freshRow?.titik_sampel ?? [];
-        setSamplePoints(Array.isArray(pts) ? pts : []);
+        // Group by latest batch date (all 10 points from last analysis)
+        const latestTime = new Date(sorted[0].created_at || 0).getTime();
+        const latestDate = new Date(latestTime).toISOString().split('T')[0];
+        const batch = sorted.filter((r) => (r.created_at || '').startsWith(latestDate)).slice(0, 10);
+
+        // Average numeric field across the batch
+        const avg = (...keys) => {
+          const vals = batch.map((r) => { for (const k of keys) { const v = Number(r[k]); if (!isNaN(v)) return v; } return NaN; }).filter((v) => !isNaN(v));
+          return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+        };
+
+        setLahanBiofisik({
+          n: avg('n', 'nitrogen'), p: avg('p', 'fosfor', 'phosphorus'),
+          k: avg('k', 'kalium', 'potassium'), ph: avg('ph', 'pH'),
+          temperature: avg('temperature', 'tci'), humidity: avg('humidity', 'ndti'),
+          rainfall: avg('rainfall'),
+        });
+        setSamplePoints(batch);
       } else {
         setLahanBiofisik(null);
         setSamplePoints([]);
@@ -539,8 +529,8 @@ const MapDashboard = () => {
 
         {/* ── Titik sampel analisis AI (merah) ── */}
         {mapSamplePoints.map((pt, idx) => {
-          const lat = Array.isArray(pt) ? pt[1] : pt?.lat ?? null;
-          const lon = Array.isArray(pt) ? pt[0] : (pt?.lon ?? pt?.lng ?? null);
+          const lat = Array.isArray(pt) ? pt[1] : (pt?.lat ?? pt?.latitude ?? null);
+          const lon = Array.isArray(pt) ? pt[0] : (pt?.lon ?? pt?.lng ?? pt?.longitude ?? null);
           if (lat == null || lon == null) return null;
           return (
             <CircleMarker
