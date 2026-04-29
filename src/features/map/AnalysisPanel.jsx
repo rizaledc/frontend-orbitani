@@ -141,7 +141,9 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         );
         const result = await res.json();
         console.log('RAW RESPONSE:', JSON.stringify(result));
-        const points = result?.satellite_results || result?.data || [];
+        const points = result?.satellite_data ||
+                       result?.satellite_results ||
+                       result?.data || [];
         console.log('POINTS FIXED:', points.length, points[0]);
         setSamples(Array.isArray(points) ? points : []);
       } catch (err) {
