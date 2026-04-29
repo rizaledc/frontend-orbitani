@@ -30,7 +30,7 @@ export const createLahan = async (lahanData) => {
  * Jika `lat` & `lon` disertakan, backend akan melakukan live fetch ke GEE (latensi tinggi).
  */
 export const getLahanData = async (lahanId, params = {}) => {
-  const response = await api.get(`/api/lahan/${lahanId}/satellite`, { params, timeout: 60000 });
+  const response = await api.get(`/lahan/${lahanId}/data`, { params, timeout: 60000 });
   return response.data;
 };
 

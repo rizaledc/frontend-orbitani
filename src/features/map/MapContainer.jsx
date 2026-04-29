@@ -180,7 +180,7 @@ const MapContainer = () => {
         lng = selectedPoint.koordinat[0][0];
       }
       const query = lat !== undefined && lng !== undefined ? `?lat=${lat}&lon=${lng}` : '';
-      await api.get(`/api/lahan/${selectedPoint.id}/satellite${query}`);
+      await api.get(`/lahan/${selectedPoint.id}/data${query}`);
       toast.success('Satelit Landsat tersinkronisasi!', { id: syncToast });
       fetchLahan();
     } catch (err) {

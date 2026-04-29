@@ -126,7 +126,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
     if (!data?.id) return;
     const fetchSamples = async () => {
       try {
-        const res = await api.get(`/api/lahan/${data.id}/satellite`);
+        const res = await api.get(`/lahan/${data.id}/data`);
         const result = res.data;
         const points = result?.satellite_results || result?.data || [];
         setSamples(Array.isArray(points) ? points : []);
