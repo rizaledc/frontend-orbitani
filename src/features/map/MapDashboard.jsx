@@ -219,7 +219,12 @@ const MapDashboard = () => {
    *  latest batch (same date) and average their values for the biofisik card. */
   const refreshBiofisik = async (lahanId) => {
     try {
-      const rows = await getHistoryByLahan(lahanId);
+      const allRows = await getHistoryByLahan(lahanId);
+      // Client-side safety filter: ensure rows belong to this lahan
+      // (backend may return all rows if lahan_id param is not supported)
+      const rows = allRows.filter(
+        (r) => !r.lahan_id || String(r.lahan_id) === String(lahanId)
+      );
       if (Array.isArray(rows) && rows.length > 0) {
         const sorted = [...rows].sort(
           (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)

@@ -134,10 +134,13 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         const result = await res.json();
         console.log('RAW RESPONSE:', JSON.stringify(result));
 
-        // Deduplicate: keep only the 10 most-recent satellite points
-        const allPoints = Array.isArray(result?.satellite_data) ? result.satellite_data
+        // Deduplicate: keep only the 10 most-recent satellite points for THIS lahan
+        const rawPoints = Array.isArray(result?.satellite_data) ? result.satellite_data
           : Array.isArray(result?.satellite_results) ? result.satellite_results
           : Array.isArray(result?.data) ? result.data : [];
+        const allPoints = rawPoints.filter(
+          (p) => !p.lahan_id || String(p.lahan_id) === String(data.id)
+        );
         const latestTime = allPoints.length > 0
           ? Math.max(...allPoints.map((p) => new Date(p.created_at).getTime()))
           : 0;
