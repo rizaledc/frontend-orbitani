@@ -126,11 +126,23 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
     if (!data?.id) return;
     const fetchSamples = async () => {
       try {
-        const res = await api.get(`/lahan/${data.id}/data`);
-        console.log('RAW RESPONSE:', JSON.stringify(res.data));
-        const result = res.data;
+        const backendUrl = import.meta.env.VITE_API_URL ||
+          'https://backend-orbitani-fkdzbherbbbzatd2.southeastasia-01.azurewebsites.net';
+        const token = localStorage.getItem('orbitani_token') ||
+                      localStorage.getItem('access_token') ||
+                      localStorage.getItem('token') ||
+                      sessionStorage.getItem('token');
+        const res = await fetch(
+          `${backendUrl}/api/lahan/${data.id}/data`,
+          { headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }}
+        );
+        const result = await res.json();
+        console.log('RAW RESPONSE:', JSON.stringify(result));
         const points = result?.satellite_results || result?.data || [];
-        console.log('POINTS:', points.length, points[0]);
+        console.log('POINTS FIXED:', points.length, points[0]);
         setSamples(Array.isArray(points) ? points : []);
       } catch (err) {
         setSamples([]);
