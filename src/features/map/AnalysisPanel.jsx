@@ -119,6 +119,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [detailLahan, setDetailLahan] = useState(null);
   const [samples, setSamples] = useState([]);
+  const [rekomendasi, setRekomendasi] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const messagesEndRef = useRef(null);
@@ -142,13 +143,27 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         );
         const result = await res.json();
         console.log('RAW RESPONSE:', JSON.stringify(result));
-        const points = result?.satellite_data ||
-                       result?.satellite_results ||
-                       result?.data || [];
+
+        // Deduplicate: keep only the 10 most-recent satellite points
+        const allPoints = Array.isArray(result?.satellite_data) ? result.satellite_data
+          : Array.isArray(result?.satellite_results) ? result.satellite_results
+          : Array.isArray(result?.data) ? result.data : [];
+        const latestTime = allPoints.length > 0
+          ? Math.max(...allPoints.map((p) => new Date(p.created_at).getTime()))
+          : 0;
+        const latestDate = new Date(latestTime).toISOString().split('T')[0];
+        const points = allPoints
+          .filter((p) => p.created_at?.startsWith(latestDate) || allPoints.length <= 10)
+          .slice(0, 10);
         console.log('POINTS FIXED:', points.length, points[0]);
-        setSamples(Array.isArray(points) ? points : []);
+        setSamples(points);
+
+        // Extract recommendations from response
+        const reko = result?.lahan?.hasil_rekomendasi || [];
+        setRekomendasi(Array.isArray(reko) ? reko : []);
       } catch (err) {
         setSamples([]);
+        setRekomendasi([]);
       }
     };
     fetchSamples();
@@ -277,8 +292,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
 
         {/* ── AI Analyze Button ── */}
         {onAnalyze && (() => {
-          const recos = getRecos(data);
-          const hasResult = recos.length > 0;
+          const hasResult = rekomendasi.length > 0 || getRecos(data).length > 0;
           return (
             <button
               onClick={async () => { await onAnalyze?.(); setRefreshKey((prev) => prev + 1); }}
@@ -299,7 +313,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
 
         {/* ── Rekomendasi Tanaman AI ── */}
         {(() => {
-          const recos = getRecos(data);
+          const recos = rekomendasi.length > 0 ? rekomendasi : getRecos(data);
           if (recos.length === 0) return null;
           return (
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
