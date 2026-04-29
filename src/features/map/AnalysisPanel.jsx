@@ -111,7 +111,7 @@ const formatDate = (isoString) => {
   }
 };
 
-const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose, onAnalyze, isAnalyzing }) => {
+const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose, onAnalyze, isAnalyzing, onSamplesLoaded }) => {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Halo! Saya Pakar Agronomi AI. Ada yang ingin dianalisis tentang titik lahan ini?' }
   ]);
@@ -157,6 +157,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
           .slice(0, 10);
         console.log('POINTS FIXED:', points.length, points[0]);
         setSamples(points);
+        onSamplesLoaded?.(points);
 
         // Extract recommendations — backend may nest under lahan, data, or flat
         const reko = result?.lahan?.hasil_rekomendasi ||

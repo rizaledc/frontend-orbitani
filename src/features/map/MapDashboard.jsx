@@ -211,6 +211,8 @@ const MapDashboard = () => {
   const [lahanBiofisik, setLahanBiofisik] = useState(null);
   // Per-point satellite sample data (array of 10 points)
   const [samplePoints, setSamplePoints] = useState([]);
+  // Sample points with lat/lon for map visualization (red dots)
+  const [mapSamplePoints, setMapSamplePoints] = useState([]);
 
   /**
    * Normalises a raw history row into the biofisik shape expected by the card.
@@ -520,11 +522,11 @@ const MapDashboard = () => {
           );
         })}
 
-        {/* ── Render Sampling Points if available ── */}
+        {/* ── Render Sampling Points if available (legacy yellow) ── */}
         {selectedLahan?.titik_sampling && selectedLahan.titik_sampling.map((pt, idx) => {
-          // pt can be [lon, lat] or {lat, lon}. We need [lat, lon] for Leaflet
           const lat = Array.isArray(pt) ? pt[1] : pt.lat;
           const lon = Array.isArray(pt) ? pt[0] : pt.lon;
+          if (lat == null || lon == null) return null;
           return (
             <CircleMarker
               key={`sp-${idx}`}
@@ -532,6 +534,22 @@ const MapDashboard = () => {
               radius={4}
               pathOptions={{ color: '#f59e0b', fillColor: '#facc15', fillOpacity: 0.9, weight: 1.5 }}
             />
+          );
+        })}
+
+        {/* ── Titik sampel analisis AI (merah) ── */}
+        {mapSamplePoints.map((pt, idx) => {
+          const lat = Array.isArray(pt) ? pt[1] : pt?.lat ?? null;
+          const lon = Array.isArray(pt) ? pt[0] : (pt?.lon ?? pt?.lng ?? null);
+          if (lat == null || lon == null) return null;
+          return (
+            <CircleMarker
+              key={`ai-${idx}`}
+              center={[lat, lon]}
+              radius={6}
+              pathOptions={{ color: '#b91c1c', fillColor: '#ef4444', fillOpacity: 0.85, weight: 2 }}
+            >
+            </CircleMarker>
           );
         })}
       </MapContainer>
@@ -688,14 +706,15 @@ const MapDashboard = () => {
 
       {/* ─── SLIDE-OVER ANALITIK KANAN ─── */}
       {isSlideOpen && selectedLahan && (
-        <AnalysisPanel 
-          data={selectedLahan} 
+        <AnalysisPanel
+          data={selectedLahan}
           lahanDetail={lahanDetail}
           lahanBiofisik={lahanBiofisik}
           samplePoints={samplePoints}
-          onClose={() => setIsSlideOpen(false)} 
+          onClose={() => { setIsSlideOpen(false); setMapSamplePoints([]); }}
           onAnalyze={handleAnalyzeLahan}
           isAnalyzing={analyzingId === selectedLahan.id}
+          onSamplesLoaded={setMapSamplePoints}
         />
       )}
 
