@@ -391,33 +391,22 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         </div>
 
         {/* ── Rekomendasi Tanaman TOP 3 ── */}
-        <div style={{ background: '#ecfdf5', border: '2px solid #10b981', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ borderBottom: '1px solid #a7f3d0', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#065f46' }}>🌱 Rekomendasi Tanaman</span>
-            {top3Reko.length > 0 && (
-              <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#9ca3af' }}>dari {finalSamples.length} titik</span>
-            )}
-          </div>
-          <div style={{ padding: '12px 16px' }}>
-            {top3Reko.length === 0 ? (
-              <p style={{ color: '#9ca3af', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>
-                Belum dianalisis — klik tombol di atas untuk memulai.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {top3Reko.map(({ tanaman, pct }, idx) => (
-                  <div key={tanaman} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ width: 20, height: 20, borderRadius: '50%', background: rekoRankColors[idx].bg, color: rekoRankColors[idx].color, fontSize: 10, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{idx + 1}</span>
-                    <span style={{ width: 90, fontSize: 13, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize', flexShrink: 0 }}>{tanaman}</span>
-                    <div style={{ flex: 1, background: '#d1fae5', borderRadius: 999, height: 8, overflow: 'hidden' }}>
-                      <div style={{ width: `${pct}%`, height: '100%', background: rekoBarColors[idx], borderRadius: 999, transition: 'width 0.4s' }} />
-                    </div>
-                    <span style={{ width: 36, textAlign: 'right', fontSize: 12, fontWeight: 'bold', color: rekoBarColors[idx], flexShrink: 0 }}>{pct}%</span>
-                  </div>
-                ))}
+        <div style={{ background: '#ecfdf5', border: '2px solid #10b981', borderRadius: '12px', padding: '16px' }}>
+          <p style={{ color: '#065f46', fontWeight: 'bold', marginBottom: '10px', fontSize: '13px' }}>
+            🌱 Rekomendasi Tanaman {top3Reko.length > 0 && <span style={{ fontWeight: 'normal', fontSize: '11px', color: '#9ca3af' }}>dari {finalSamples.length} titik</span>}
+          </p>
+          {top3Reko.length === 0 ? (
+            <p style={{ color: '#9ca3af', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>Belum dianalisis — klik tombol di atas untuk memulai.</p>
+          ) : top3Reko.map(({ tanaman, pct }, idx) => (
+            <div key={tanaman} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: idx < top3Reko.length - 1 ? '8px' : 0 }}>
+              <span style={{ width: 18, height: 18, borderRadius: '50%', background: rekoRankColors[idx].bg, color: rekoRankColors[idx].color, fontSize: 10, fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{idx + 1}</span>
+              <span style={{ width: 88, fontSize: 13, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize', flexShrink: 0 }}>{tanaman}</span>
+              <div style={{ flex: 1, background: '#d1fae5', borderRadius: 999, height: 8 }}>
+                <div style={{ width: `${pct}%`, height: '100%', background: rekoBarColors[idx], borderRadius: 999 }} />
               </div>
-            )}
-          </div>
+              <span style={{ width: 34, textAlign: 'right', fontSize: 12, fontWeight: 'bold', color: rekoBarColors[idx], flexShrink: 0 }}>{pct}%</span>
+            </div>
+          ))}
         </div>
 
         {/* ═══════════════════════════════════════════
