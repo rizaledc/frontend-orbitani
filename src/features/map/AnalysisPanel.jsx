@@ -126,7 +126,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
     if (!data?.id) return;
     const fetchSamples = async () => {
       try {
-        const res = await api.get(`/api/lahan/${data.id}/data`);
+        const res = await api.get(`/api/lahan/${data.id}/satellite`);
         const result = res.data;
         const points = result?.satellite_results || result?.data || [];
         setSamples(Array.isArray(points) ? points : []);
@@ -224,6 +224,14 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!isChatLoading) handleSendChat(); }
   };
 
+  const getRecos = (d) => {
+    if (Array.isArray(d?.hasil_rekomendasi) && d.hasil_rekomendasi.length > 0) return d.hasil_rekomendasi;
+    if (Array.isArray(d?.ai_recommendation) && d.ai_recommendation.length > 0) return d.ai_recommendation;
+    if (typeof d?.ai_recommendation === 'string' && d.ai_recommendation) return [{ tanaman: d.ai_recommendation, persentase: 100 }];
+    if (typeof d?.crop_recommendation === 'string' && d.crop_recommendation) return [{ tanaman: d.crop_recommendation, persentase: 100 }];
+    return [];
+  };
+
   return (
     <div className="absolute lg:fixed bottom-0 left-0 right-0 z-[1000] bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-tl-none shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.6)] transform transition-transform duration-300 ease-out border-t border-gray-200 dark:border-gray-800 flex flex-col h-[75vh] md:h-[65vh] lg:h-auto lg:top-16 lg:bottom-0 lg:left-auto lg:right-0 lg:w-[450px] lg:border-t-0 lg:border-l lg:rounded-none animate-slide-up lg:animate-slide-left">
 
@@ -251,47 +259,53 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
       <div className="flex-1 overflow-y-auto p-5 custom-scrollbar flex flex-col gap-6">
 
         {/* ── AI Analyze Button ── */}
-        {onAnalyze && (
-          <button
-            onClick={onAnalyze}
-            disabled={isAnalyzing}
-            className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
-          >
-            {isAnalyzing ? (
-              <><OrbitaniLoader size="sm" /><span>Menganalisis Lahan...</span></>
-            ) : (
-              <>
-                {Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0
-                  ? <ArrowClockwise size={16} weight="bold" />
-                  : <Plant size={16} weight="duotone" />}
-                <span>{Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0 ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
-              </>
-            )}
-          </button>
-        )}
+        {onAnalyze && (() => {
+          const recos = getRecos(data);
+          const hasResult = recos.length > 0;
+          return (
+            <button
+              onClick={onAnalyze}
+              disabled={isAnalyzing}
+              className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+            >
+              {isAnalyzing ? (
+                <><OrbitaniLoader size="sm" /><span>Menganalisis Lahan...</span></>
+              ) : (
+                <>
+                  {hasResult ? <ArrowClockwise size={16} weight="bold" /> : <Plant size={16} weight="duotone" />}
+                  <span>{hasResult ? 'Analisis Ulang / Perbarui' : 'Analisis Tanaman (AI)'}</span>
+                </>
+              )}
+            </button>
+          );
+        })()}
 
         {/* ── Rekomendasi Tanaman AI ── */}
-        {Array.isArray(data?.hasil_rekomendasi) && data.hasil_rekomendasi.length > 0 && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                <Plant size={14} weight="duotone" /> Rekomendasi Tanaman AI
-              </span>
-              <span className="text-[10px] text-gray-400">{formatDate(data.terakhir_dianalisis)}</span>
-            </div>
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {data.hasil_rekomendasi.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
-                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 capitalize">{item.tanaman}</span>
+        {(() => {
+          const recos = getRecos(data);
+          if (recos.length === 0) return null;
+          return (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                  <Plant size={14} weight="duotone" /> Rekomendasi Tanaman AI
+                </span>
+                <span className="text-[10px] text-gray-400">{formatDate(data.terakhir_dianalisis)}</span>
+              </div>
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {recos.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 capitalize">{item.tanaman}</span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">{item.persentase}%</span>
                   </div>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">{item.persentase}%</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ═══════════════════════════════════════════
             FEATURE 5 — Kondisi Biofisik Lahan
