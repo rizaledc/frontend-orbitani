@@ -98,18 +98,6 @@ const SHAP_DATA = [
 ];
 const SHAP_MAX = SHAP_DATA[0].value;
 
-/** Format ISO timestamp → "27 Apr 2026, 13:00" */
-const formatDate = (isoString) => {
-  if (!isoString) return '-';
-  try {
-    return new Date(isoString).toLocaleString('id-ID', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: false,
-    });
-  } catch {
-    return isoString;
-  }
-};
 
 const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose, onAnalyze, isAnalyzing, onSamplesLoaded }) => {
   const [messages, setMessages] = useState([
@@ -313,33 +301,6 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
                 </>
               )}
             </button>
-          );
-        })()}
-
-        {/* ── Rekomendasi Tanaman AI ── */}
-        {(() => {
-          const recos = rekomendasi.length > 0 ? rekomendasi : getRecos(data);
-          if (recos.length === 0) return null;
-          return (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                  <PlantIcon size={14} weight="duotone" /> Rekomendasi Tanaman AI
-                </span>
-                <span className="text-[10px] text-gray-400">{formatDate(data.terakhir_dianalisis)}</span>
-              </div>
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                {recos.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
-                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 capitalize">{item.tanaman}</span>
-                    </div>
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">{item.persentase}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           );
         })()}
 
