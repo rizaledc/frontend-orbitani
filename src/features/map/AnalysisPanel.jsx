@@ -304,15 +304,6 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
           );
         })()}
 
-        {/* ── Rekomendasi Tanaman ── */}
-        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 overflow-hidden">
-          <div className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center gap-2">
-            <PlantIcon size={14} weight="duotone" className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Rekomendasi Tanaman</span>
-          </div>
-          <p className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 italic">None</p>
-        </div>
-
         {/* ═══════════════════════════════════════════
             FEATURE 5 — Kondisi Biofisik Lahan
             with status badges on each metric
@@ -380,6 +371,15 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ── Rekomendasi Tanaman ── */}
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 overflow-hidden">
+          <div className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center gap-2">
+            <PlantIcon size={14} weight="duotone" className="text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Rekomendasi Tanaman</span>
+          </div>
+          <p className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 italic">None</p>
         </div>
 
         {/* ═══════════════════════════════════════════
