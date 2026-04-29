@@ -374,12 +374,9 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         </div>
 
         {/* ── Rekomendasi Tanaman ── */}
-        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 overflow-hidden">
-          <div className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/40 flex items-center gap-2">
-            <PlantIcon size={14} weight="duotone" className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Rekomendasi Tanaman</span>
-          </div>
-          <p className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 italic">None</p>
+        <div style={{ background: '#ecfdf5', border: '2px solid #10b981', borderRadius: '12px', padding: '16px' }}>
+          <p style={{ color: '#065f46', fontWeight: 'bold', marginBottom: '8px', fontSize: '13px' }}>🌱 Rekomendasi Tanaman</p>
+          <p style={{ color: '#6b7280', fontSize: '13px' }}>None</p>
         </div>
 
         {/* ═══════════════════════════════════════════
