@@ -1,19 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import logger from '../../utils/logger';
+import { MapPin } from 'lucide-react';
 import { Sparkle, User, PaperPlaneRight, CircleNotch, GearSix, Eye, EyeSlash, Key, Trash, X, Info, Plus, ClockCounterClockwise, CaretDoubleLeft, ChatTeardropText, PencilSimple, Check } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
 import { 
   sendQuickChat, 
-  analyzeLahan, 
   fetchChatHistory, 
   saveChatMessage,
   fetchChatSessions,
   updateSessionTitle,
   deleteChatSession
 } from '../../services/aiChatService';
-import { getAllLahan } from '../../services/lahanService';
+import { getAllLahan, getLahanData } from '../../services/lahanService';
 
 // Custom Markdown Renderer (Strict White Theme)
 const markdownComponents = {
@@ -104,7 +104,11 @@ const AIChat = () => {
 
   // Lahan States
   const [lahanOptions, setLahanOptions] = useState([]);
-  const [selectedLahan, setSelectedLahan] = useState('');
+  const [isLoadingLahan, setIsLoadingLahan] = useState(false);
+  const [selectedLahan, setSelectedLahan] = useState(null);
+  // biofisikData menyimpan data detail (NPK, suhu, dll) dari getLahanData()
+  // yang di-fetch otomatis setiap kali user memilih lahan baru di sidebar.
+  const [biofisikData, setBiofisikData] = useState(null);
 
   // BYOK Modal State
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -120,6 +124,25 @@ const AIChat = () => {
     loadSessions();
   }, []);
 
+  // Fetch data biofisik detail setiap kali lahan aktif berubah
+  useEffect(() => {
+    if (!selectedLahan?.id) {
+      setBiofisikData(null);
+      return;
+    }
+    getLahanData(selectedLahan.id)
+      .then(res => {
+        // Data biofisik bisa berada di rata_rata_fitur atau langsung di root
+        const bf = res?.rata_rata_fitur || res?.data?.rata_rata_fitur || res || {};
+        setBiofisikData(bf);
+        logger.log('[Context] Biofisik data loaded for lahan', selectedLahan.id, bf);
+      })
+      .catch(err => {
+        logger.error('[Context] Gagal fetch biofisik:', err);
+        setBiofisikData(null);
+      });
+  }, [selectedLahan?.id]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -128,11 +151,14 @@ const AIChat = () => {
 
   // ──── Data Fetchers ────
   const fetchLahanOptions = async () => {
+    setIsLoadingLahan(true);
     try {
       const data = await getAllLahan();
       setLahanOptions(Array.isArray(data) ? data : []);
     } catch (err) {
       logger.error('Failed fetching lahan:', err);
+    } finally {
+      setIsLoadingLahan(false);
     }
   };
 
@@ -290,13 +316,58 @@ const AIChat = () => {
         })
         .catch((err) => logger.warn('Failed to save user msg:', err));
 
-      // Step C: Call Gemini AI
-      let responseData;
+      // Step C: Call Gemini AI via /api/chat/ask (ALWAYS)
+      // Rakit contextLahanAktif sesuai skema backend chat.py (baris 92-118):
+      //   Root  : nama, luas, rekomendasi
+      //   Nested: biofisik.n / .p / .k / .temperature / .humidity / .rainfall
+      let contextLahanAktif = null;
+
       if (selectedLahan) {
-        responseData = await analyzeLahan(text, selectedLahan);
-      } else {
-        responseData = await sendQuickChat(text);
+        // biofisikData di-fetch secara terpisah via getLahanData() saat lahan dipilih,
+        // karena GET /api/lahan/ tidak mengembalikan data biofisik detail.
+        const bf = biofisikData || {};
+        const satData = bf.satellite_data || bf.data?.satellite_data;
+
+        let n = null, p = null, k = null, ph = null, temperature = null, humidity = null, rainfall = null;
+
+        if (Array.isArray(satData) && satData.length > 0) {
+          n = parseFloat((satData.reduce((sum, item) => sum + (item.nitrogen ?? item.n ?? 0), 0) / satData.length).toFixed(2));
+          p = parseFloat((satData.reduce((sum, item) => sum + (item.fosfor ?? item.p ?? 0), 0) / satData.length).toFixed(2));
+          k = parseFloat((satData.reduce((sum, item) => sum + (item.kalium ?? item.k ?? 0), 0) / satData.length).toFixed(2));
+          ph = parseFloat((satData.reduce((sum, item) => sum + (item.ph ?? 0), 0) / satData.length).toFixed(2));
+          temperature = parseFloat((satData.reduce((sum, item) => sum + (item.tci ?? item.suhu ?? item.temperature ?? 0), 0) / satData.length).toFixed(2));
+          humidity = parseFloat((satData.reduce((sum, item) => sum + (item.ndti ?? item.kelembapan ?? item.humidity ?? 0), 0) / satData.length).toFixed(2));
+          rainfall = parseFloat((satData.reduce((sum, item) => sum + (item.rainfall ?? item.curah_hujan ?? 0), 0) / satData.length).toFixed(2));
+        } else {
+          n = bf.nitrogen ?? bf.N ?? bf.n ?? null;
+          p = bf.fosfor ?? bf.P ?? bf.p ?? null;
+          k = bf.kalium ?? bf.K ?? bf.k ?? null;
+          ph = bf.ph ?? bf.pH ?? null;
+          temperature = bf.suhu ?? bf.temperature ?? null;
+          humidity = bf.kelembapan ?? bf.humidity ?? null;
+          rainfall = bf.curah_hujan ?? bf.rainfall ?? null;
+        }
+
+        const rekoArr = selectedLahan.hasil_rekomendasi || selectedLahan.data?.hasil_rekomendasi || [];
+        const rekomendasi = Array.isArray(rekoArr) && rekoArr.length > 0
+          ? rekoArr   // backend handle list-of-dict [{tanaman, persentase}]
+          : (selectedLahan.ai_recommendation || bf.rekomendasi || null);
+
+        contextLahanAktif = {
+          // Root keys — backend baca: ctx.get("nama"), ctx.get("luas"), ctx.get("rekomendasi")
+          nama       : selectedLahan.nama || selectedLahan.name || 'Tidak diketahui',
+          luas       : selectedLahan.luas_ha ?? selectedLahan.luas ?? selectedLahan.area ?? 'N/A',
+          rekomendasi,
+          // Nested biofisik — backend baca: biofisik.get("n"), biofisik.get("temperature"), dll.
+          biofisik: { n, p, k, ph, temperature, humidity, rainfall },
+        };
+
+        // Debug log — periksa di Console browser sebelum dikirim ke API
+        console.log('[Context Injection] Payload dikirim ke /api/chat/ask:', contextLahanAktif);
       }
+
+      // Always sendQuickChat — context diinjeksi sebagai payload, bukan ganti endpoint
+      const responseData = await sendQuickChat(text, contextLahanAktif);
 
       const aiContent = responseData.answer || responseData.response || 'Maaf, respon tidak dapat diproses saat ini.';
 
@@ -403,8 +474,80 @@ const AIChat = () => {
         </div>
 
         {/* Sidebar Session List */}
-        <div className="flex-1 overflow-y-auto px-2 py-3 custom-scrollbar">
-          <p className="px-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 mt-1">Riwayat Analisis</p>
+        <div className="flex-1 overflow-y-auto px-2 py-3 custom-scrollbar flex flex-col">
+
+          {/* ── Pilih Lahan Section ── */}
+          <div className="mb-4">
+            <p className="px-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 mt-1">Konteks Lahan</p>
+            {isLoadingLahan ? (
+              <div className="px-3 py-3 flex items-center gap-2 text-gray-400 text-xs">
+                <svg className="animate-spin w-3.5 h-3.5 text-primary shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+                Memuat data lahan...
+              </div>
+            ) : (
+              <div className="max-h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent rounded-xl">
+                {/* "Obrolan Umum" option */}
+                <button
+                  onClick={() => setSelectedLahan(null)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all text-sm font-medium cursor-pointer ${
+                    !selectedLahan
+                      ? 'bg-green-50 border-l-4 border-green-600 text-green-800 pl-2'
+                      : 'hover:bg-gray-100/80 text-gray-500 border-l-4 border-transparent'
+                  }`}
+                >
+                  <MapPin
+                    size={16}
+                    strokeWidth={2}
+                    className={!selectedLahan ? 'text-green-700' : 'text-gray-400'}
+                  />
+                  <span className="truncate text-xs font-semibold">Obrolan Umum</span>
+                </button>
+
+                {lahanOptions.length === 0 ? (
+                  <p className="px-3 py-3 text-xs text-gray-400 italic">Belum ada lahan terdaftar.</p>
+                ) : (
+                  lahanOptions.map(lahan => {
+                    const isActive = selectedLahan?.id === lahan.id;
+                    return (
+                      <button
+                        key={lahan.id}
+                        onClick={() => setSelectedLahan(lahan)}
+                        className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-green-50 border-l-4 border-green-600 pl-2'
+                            : 'hover:bg-gray-100/80 border-l-4 border-transparent'
+                        }`}
+                      >
+                        <MapPin
+                          size={16}
+                          strokeWidth={2}
+                          className={`shrink-0 mt-0.5 ${isActive ? 'text-green-700' : 'text-gray-400'}`}
+                        />
+                        <div className="min-w-0">
+                          <p className={`text-xs font-semibold truncate leading-snug ${
+                            isActive ? 'text-green-800' : 'text-gray-700'
+                          }`}>
+                            {lahan.nama || lahan.name}
+                          </p>
+                          {(lahan.luas_ha || lahan.luas) && (
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              {lahan.luas_ha || lahan.luas} Ha
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Riwayat Analisis ── */}
+          <p className="px-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Riwayat Analisis</p>
           {sessions.length === 0 ? (
             <div className="px-3 py-4 text-center text-sm text-gray-400">Belum ada sesi tersimpan.</div>
           ) : (
@@ -502,27 +645,20 @@ const AIChat = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            {/* Lahan Context Dropdown */}
-            <div className="w-full sm:w-56 lg:w-64">
-              <select
-                value={selectedLahan}
-                onChange={(e) => setSelectedLahan(e.target.value)}
-                className="w-full appearance-none bg-white border border-gray-200 text-gray-700 text-xs sm:text-sm font-semibold rounded-xl px-3 sm:px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 cursor-pointer hover:shadow-sm transition-all"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: `right 0.5rem center`,
-                  backgroundRepeat: `no-repeat`,
-                  backgroundSize: `1.5em 1.5em`,
-                }}
-              >
-                <option value="">+ Konteks Obrolan Umum</option>
-                {lahanOptions.map(lahan => (
-                  <option key={lahan.id} value={lahan.id}>
-                    📍 Lahan: {lahan.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Lahan Context — compact badge in header showing active lahan */}
+            {selectedLahan && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-xl text-xs font-semibold text-green-800 max-w-[180px] lg:max-w-[220px]">
+                <MapPin size={13} strokeWidth={2} className="text-green-600 shrink-0" />
+                <span className="truncate">{selectedLahan.nama || selectedLahan.name}</span>
+                <button
+                  onClick={() => setSelectedLahan(null)}
+                  className="ml-auto shrink-0 text-green-500 hover:text-green-800 transition-colors"
+                  title="Hapus konteks lahan"
+                >
+                  <X size={12} weight="bold" />
+                </button>
+              </div>
+            )}
 
             {/* Settings Gear Icon */}
             <button
@@ -614,7 +750,7 @@ const AIChat = () => {
               disabled={isLoading || isLoadingHistory}
               placeholder={
                 selectedLahan 
-                  ? "Tanyakan analisis seputar lahan yang Anda pilih..." 
+                  ? `Tanyakan analisis seputar "${selectedLahan.nama || selectedLahan.name}"...` 
                   : "Tanyakan apapun tentang agrikultur atau tanaman Anda..."
               }
               className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-2xl px-5 py-4 pr-16 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary-50 transition-all resize-none text-[15px] custom-scrollbar disabled:opacity-60 disabled:bg-gray-100"

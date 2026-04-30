@@ -8,14 +8,18 @@ import api from './api';
 const AI_TIMEOUT = 60000;
 
 /** POST /api/chat/ask — Tanya jawab umum ke AI */
-export const sendQuickChat = async (message) => {
-  const response = await api.post('/api/chat/ask', { message }, { timeout: AI_TIMEOUT });
+export const sendQuickChat = async (message, contextLahanAktif = null) => {
+  const payload = { message };
+  if (contextLahanAktif) payload.contextLahanAktif = contextLahanAktif;
+  const response = await api.post('/api/chat/ask', payload, { timeout: AI_TIMEOUT });
   return response.data;
 };
 
 /** POST /api/chat/analyze-lahan — Analisis lahan spesifik (pipeline penuh: GEE → ML → Gemini) */
-export const analyzeLahan = async (message, lahanId) => {
-  const response = await api.post('/api/chat/analyze-lahan', { message, lahan_id: lahanId }, { timeout: AI_TIMEOUT });
+export const analyzeLahan = async (message, lahanId, contextLahanAktif = null) => {
+  const payload = { message, lahan_id: lahanId };
+  if (contextLahanAktif) payload.contextLahanAktif = contextLahanAktif;
+  const response = await api.post('/api/chat/analyze-lahan', payload, { timeout: AI_TIMEOUT });
   return response.data;
 };
 

@@ -265,7 +265,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
   };
 
   return (
-    <div className="absolute lg:fixed bottom-0 left-0 right-0 z-[1000] bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-tl-none shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.6)] transform transition-transform duration-300 ease-out border-t border-gray-200 dark:border-gray-800 flex flex-col h-[75vh] md:h-[65vh] lg:h-auto lg:top-16 lg:bottom-0 lg:left-auto lg:right-0 lg:w-[450px] lg:border-t-0 lg:border-l lg:rounded-none animate-slide-up lg:animate-slide-left">
+    <div className="absolute lg:fixed bottom-0 left-0 right-0 z-[1000] bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-tl-none shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.6)] transform transition-transform duration-300 ease-out border-t border-gray-200 dark:border-gray-800 flex flex-col h-[65vh] md:h-[55vh] lg:h-auto lg:top-16 lg:bottom-0 lg:left-auto lg:right-0 lg:w-[360px] lg:border-t-0 lg:border-l lg:rounded-none animate-slide-up lg:animate-slide-left">
 
       {/* Handle for mobile */}
       <div className="w-full flex justify-center pt-3 pb-2 lg:hidden" onClick={onClose} style={{ cursor: 'pointer' }}>
@@ -273,20 +273,19 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
       </div>
 
       {/* Header */}
-      <div className="px-5 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center flex-shrink-0">
+      <div className="px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center flex-shrink-0">
         <div>
-          <h3 className="text-lg font-bold text-neutral-text dark:text-white flex items-center gap-2">
+          <h3 className="text-sm font-bold text-neutral-text dark:text-white">
             {data.nama || `Lahan #${data.id}`}
           </h3>
           {(data.keterangan || data.deskripsi) && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
               {data.keterangan || data.deskripsi}
             </p>
           )}
           {(data.terakhir_dianalisis || data.last_analyzed_at) && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 flex items-center gap-1">
-              <Clock size={11} />
-              Analisis terakhir:{' '}
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
+              <Clock size={10} />
               {new Date(data.terakhir_dianalisis || data.last_analyzed_at).toLocaleString('id-ID', {
                 day: '2-digit', month: 'short', year: 'numeric',
                 hour: '2-digit', minute: '2-digit'
@@ -294,13 +293,13 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
             </p>
           )}
         </div>
-        <button onClick={onClose} className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
-          <X size={20} strokeWidth={2.5} className="text-gray-600 dark:text-gray-300" />
+        <button onClick={onClose} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+          <X size={16} strokeWidth={2.5} className="text-gray-600 dark:text-gray-300" />
         </button>
       </div>
 
       {/* ─── Scrollable Content ─── */}
-      <div className="flex-1 overflow-y-auto p-5 custom-scrollbar flex flex-col gap-6">
+      <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar flex flex-col gap-4">
 
         {/* ── AI Analyze Button ── */}
         {onAnalyze && (() => {
@@ -309,7 +308,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
             <button
               onClick={async () => { await onAnalyze?.(); setRefreshKey((prev) => prev + 1); }}
               disabled={isAnalyzing}
-              className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs transition-all bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
             >
               {isAnalyzing ? (
                 <><OrbitaniLoader size="sm" /><span>Menganalisis Lahan...</span></>
@@ -335,74 +334,74 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
           </div>
 
           {/* NPK — 3 kartu bersebelahan */}
-          <div className="grid grid-cols-3 gap-2 mb-2">
-            <div className="bg-lime-50 dark:bg-lime-900/10 border border-lime-200 dark:border-lime-500/20 rounded-2xl p-3 text-center flex flex-col items-center">
-              <span className="text-[10px] uppercase font-bold text-lime-600 dark:text-lime-400 flex items-center justify-center gap-1.5 mb-1">
-                <FlaskConical size={14} strokeWidth={2} className="text-gray-500" /> Nitrogen (N)
+          <div className="grid grid-cols-3 gap-1.5 mb-1.5">
+            <div className="bg-lime-50 dark:bg-lime-900/10 border border-lime-200 dark:border-lime-500/20 rounded-xl p-2 text-center flex flex-col items-center">
+              <span className="text-[9px] uppercase font-bold text-lime-600 dark:text-lime-400 flex items-center justify-center gap-1 mb-0.5">
+                <FlaskConical size={11} strokeWidth={2} className="text-gray-500" /> N
               </span>
-              <span className="text-xl font-bold text-lime-700 dark:text-lime-300 block leading-tight">{bioN != null ? Number(bioN).toFixed(1) : '–'}</span>
-              <span className="text-[10px] text-gray-400">mg/kg</span>
+              <span className="text-base font-bold text-lime-700 dark:text-lime-300 block leading-tight">{bioN != null ? Number(bioN).toFixed(1) : '–'}</span>
+              <span className="text-[9px] text-gray-400">mg/kg</span>
             </div>
-            <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl p-3 text-center flex flex-col items-center">
-              <span className="text-[10px] uppercase font-bold text-orange-600 dark:text-orange-400 flex items-center justify-center gap-1.5 mb-1">
-                <Layers size={14} strokeWidth={2} className="text-gray-500" /> Fosfor (P)
+            <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-500/20 rounded-xl p-2 text-center flex flex-col items-center">
+              <span className="text-[9px] uppercase font-bold text-orange-600 dark:text-orange-400 flex items-center justify-center gap-1 mb-0.5">
+                <Layers size={11} strokeWidth={2} className="text-gray-500" /> P
               </span>
-              <span className="text-xl font-bold text-orange-700 dark:text-orange-300 block leading-tight">{bioP != null ? Number(bioP).toFixed(1) : '–'}</span>
-              <span className="text-[10px] text-gray-400">mg/kg</span>
+              <span className="text-base font-bold text-orange-700 dark:text-orange-300 block leading-tight">{bioP != null ? Number(bioP).toFixed(1) : '–'}</span>
+              <span className="text-[9px] text-gray-400">mg/kg</span>
             </div>
-            <div className="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-500/20 rounded-2xl p-3 text-center flex flex-col items-center">
-              <span className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 flex items-center justify-center gap-1.5 mb-1">
-                <Sprout size={14} strokeWidth={2} className="text-gray-500" /> Kalium (K)
+            <div className="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-500/20 rounded-xl p-2 text-center flex flex-col items-center">
+              <span className="text-[9px] uppercase font-bold text-purple-600 dark:text-purple-400 flex items-center justify-center gap-1 mb-0.5">
+                <Sprout size={11} strokeWidth={2} className="text-gray-500" /> K
               </span>
-              <span className="text-xl font-bold text-purple-700 dark:text-purple-300 block leading-tight">{bioK != null ? Number(bioK).toFixed(1) : '–'}</span>
-              <span className="text-[10px] text-gray-400">mg/kg</span>
+              <span className="text-base font-bold text-purple-700 dark:text-purple-300 block leading-tight">{bioK != null ? Number(bioK).toFixed(1) : '–'}</span>
+              <span className="text-[9px] text-gray-400">mg/kg</span>
             </div>
           </div>
 
-          {/* Climate — grid 2×2 tanpa label keterangan */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-2xl border border-orange-100 dark:border-orange-500/20 flex flex-col justify-center">
-              <span className="text-[10px] uppercase font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5 mb-1">
-                <TestTube size={14} strokeWidth={2} className="text-gray-500" /> PH
+          {/* Climate — grid 2×2 */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="bg-orange-50 dark:bg-orange-900/10 p-2 rounded-xl border border-orange-100 dark:border-orange-500/20 flex flex-col justify-center">
+              <span className="text-[9px] uppercase font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1 mb-0.5">
+                <TestTube size={11} strokeWidth={2} className="text-gray-500" /> PH
               </span>
-              <span className="text-2xl font-bold text-orange-700 dark:text-orange-300">{bioPH != null ? Number(bioPH).toFixed(2) : '–'}</span>
+              <span className="text-lg font-bold text-orange-700 dark:text-orange-300">{bioPH != null ? Number(bioPH).toFixed(2) : '–'}</span>
             </div>
-            <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-2xl border border-red-100 dark:border-red-500/20 flex flex-col justify-center">
-              <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5 mb-1">
-                <Thermometer size={14} strokeWidth={2} className="text-gray-500" /> SUHU
+            <div className="bg-red-50 dark:bg-red-900/10 p-2 rounded-xl border border-red-100 dark:border-red-500/20 flex flex-col justify-center">
+              <span className="text-[9px] uppercase font-bold text-red-600 dark:text-red-400 flex items-center gap-1 mb-0.5">
+                <Thermometer size={11} strokeWidth={2} className="text-gray-500" /> SUHU
               </span>
-              <span className="text-2xl font-bold text-red-700 dark:text-red-300">{bioSuhu != null ? `${Number(bioSuhu).toFixed(1)}°C` : '–'}</span>
+              <span className="text-lg font-bold text-red-700 dark:text-red-300">{bioSuhu != null ? `${Number(bioSuhu).toFixed(1)}°C` : '–'}</span>
             </div>
-            <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-500/20 flex flex-col justify-center">
-              <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 mb-1">
-                <Droplets size={14} strokeWidth={2} className="text-gray-500" /> LEMBAB
+            <div className="bg-blue-50 dark:bg-blue-900/10 p-2 rounded-xl border border-blue-100 dark:border-blue-500/20 flex flex-col justify-center">
+              <span className="text-[9px] uppercase font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-0.5">
+                <Droplets size={11} strokeWidth={2} className="text-gray-500" /> LEMBAB
               </span>
-              <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">{bioLembab != null ? `${Number(bioLembab).toFixed(1)}%` : '–'}</span>
+              <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{bioLembab != null ? `${Number(bioLembab).toFixed(1)}%` : '–'}</span>
             </div>
-            <div className="bg-cyan-50 dark:bg-cyan-900/10 p-3 rounded-2xl border border-cyan-100 dark:border-cyan-500/20 flex flex-col justify-center">
-              <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5 mb-1">
-                <CloudRain size={14} strokeWidth={2} className="text-gray-500" /> CURAH HUJAN
+            <div className="bg-cyan-50 dark:bg-cyan-900/10 p-2 rounded-xl border border-cyan-100 dark:border-cyan-500/20 flex flex-col justify-center">
+              <span className="text-[9px] uppercase font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1 mb-0.5">
+                <CloudRain size={11} strokeWidth={2} className="text-gray-500" /> HUJAN
               </span>
-              <span className="text-2xl font-bold text-cyan-700 dark:text-cyan-300">{bioHujan != null ? `${Number(bioHujan).toFixed(1)} mm` : '–'}</span>
+              <span className="text-lg font-bold text-cyan-700 dark:text-cyan-300">{bioHujan != null ? `${Number(bioHujan).toFixed(1)} mm` : '–'}</span>
             </div>
           </div>
         </div>
 
         {/* ── Rekomendasi Tanaman TOP 3 ── */}
-        <div style={{ background: '#ecfdf5', border: '2px solid #10b981', borderRadius: '12px', padding: '16px' }}>
-          <div className="mb-2.5 text-[13px] font-bold text-[#065f46] dark:text-green-600">
-            Rekomendasi Tanaman {top3Reko.length > 0 && <span className="font-normal text-[11px] text-gray-400 ml-1">dari {finalSamples.length} titik</span>}
+        <div style={{ background: '#ecfdf5', border: '1.5px solid #10b981', borderRadius: '10px', padding: '10px' }}>
+          <div className="mb-2 text-[12px] font-bold text-[#065f46] dark:text-green-600">
+            Rekomendasi Tanaman {top3Reko.length > 0 && <span className="font-normal text-[10px] text-gray-400 ml-1">dari {finalSamples.length} titik</span>}
           </div>
           {top3Reko.length === 0 ? (
-            <p style={{ color: '#9ca3af', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>Belum dianalisis — klik tombol di atas untuk memulai.</p>
+            <p style={{ color: '#9ca3af', fontSize: '12px', fontStyle: 'italic', margin: 0 }}>Belum dianalisis — klik tombol di atas untuk memulai.</p>
           ) : top3Reko.map(({ tanaman, pct }, idx) => (
-            <div key={tanaman} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: idx < top3Reko.length - 1 ? '8px' : 0 }}>
-              <span style={{ width: 18, height: 18, borderRadius: '50%', background: rekoRankColors[idx].bg, color: rekoRankColors[idx].color, fontSize: 10, fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{idx + 1}</span>
-              <span style={{ width: 88, fontSize: 13, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize', flexShrink: 0 }}>{tanaman}</span>
-              <div style={{ flex: 1, background: '#d1fae5', borderRadius: 999, height: 8 }}>
+            <div key={tanaman} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: idx < top3Reko.length - 1 ? '5px' : 0 }}>
+              <span style={{ width: 15, height: 15, borderRadius: '50%', background: rekoRankColors[idx].bg, color: rekoRankColors[idx].color, fontSize: 9, fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{idx + 1}</span>
+              <span style={{ width: 72, fontSize: 11, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize', flexShrink: 0 }}>{tanaman}</span>
+              <div style={{ flex: 1, background: '#d1fae5', borderRadius: 999, height: 6 }}>
                 <div style={{ width: `${pct}%`, height: '100%', background: rekoBarColors[idx], borderRadius: 999 }} />
               </div>
-              <span style={{ width: 34, textAlign: 'right', fontSize: 12, fontWeight: 'bold', color: rekoBarColors[idx], flexShrink: 0 }}>{pct}%</span>
+              <span style={{ width: 30, textAlign: 'right', fontSize: 11, fontWeight: 'bold', color: rekoBarColors[idx], flexShrink: 0 }}>{pct}%</span>
             </div>
           ))}
         </div>
@@ -500,12 +499,12 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
               { subject: 'Lembab', value: avg(getHumid, 100), fullMark: 100 },
             ];
             return (
-              <ResponsiveContainer width="100%" height={220}>
-                <RadarChart data={radarData} margin={{ top: 4, right: 16, bottom: 4, left: 16 }}>
+              <ResponsiveContainer width="100%" height={180}>
+                <RadarChart data={radarData} margin={{ top: 4, right: 12, bottom: 4, left: 12 }}>
                   <PolarGrid stroke="#e5e7eb" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 600 }} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: '#6b7280', fontWeight: 600 }} />
                   <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} dot={{ r: 3, fill: '#6366f1' }} />
+                  <Radar dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} dot={{ r: 2, fill: '#6366f1' }} />
                   <RechartsTooltip
                     formatter={(val, _name, entry) => [`${val}%`, entry.payload.subject]}
                     contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
@@ -621,7 +620,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
         {/* ═══════════════════════════════════════════
             AI Chat Interface (unchanged)
             ═══════════════════════════════════════════ */}
-        <div className="flex flex-col h-[400px] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden bg-gray-50/50 dark:bg-gray-800/20 shadow-inner">
+        <div className="flex flex-col h-[320px] border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden bg-gray-50/50 dark:bg-gray-800/20 shadow-inner">
           <div className="bg-primary/5 dark:bg-primary/20 px-4 py-3 border-b border-primary/10 dark:border-primary/30 flex justify-between items-center gap-2">
             <div className="flex items-center gap-2">
               <Sparkles size={18} strokeWidth={2} className="text-green-800 dark:text-green-600" />
