@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import logger from '../../utils/logger';
+import { toIndonesian } from '../../utils/plantNames';
 import {
   X, Hash, Thermometer, Droplets, CloudRain,
   Send, Sparkles, User, Loader2, Leaf,
@@ -397,7 +398,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
           ) : top3Reko.map(({ tanaman, pct }, idx) => (
             <div key={tanaman} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: idx < top3Reko.length - 1 ? '5px' : 0 }}>
               <span style={{ width: 15, height: 15, borderRadius: '50%', background: rekoRankColors[idx].bg, color: rekoRankColors[idx].color, fontSize: 9, fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{idx + 1}</span>
-              <span style={{ width: 72, fontSize: 11, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize', flexShrink: 0 }}>{tanaman}</span>
+              <span style={{ width: 72, fontSize: 11, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize', flexShrink: 0 }}>{toIndonesian(tanaman)}</span>
               <div style={{ flex: 1, background: '#d1fae5', borderRadius: 999, height: 6 }}>
                 <div style={{ width: `${pct}%`, height: '100%', background: rekoBarColors[idx], borderRadius: 999 }} />
               </div>
@@ -445,7 +446,7 @@ const AnalysisPanel = ({ data, lahanDetail, lahanBiofisik, samplePoints, onClose
                       <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getTemp(pt))}</td>
                       <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getHumid(pt))}</td>
                       <td className="px-2.5 py-2 text-gray-700 dark:text-gray-300">{fmt(getRain(pt), 0)}</td>
-                      <td className="px-2.5 py-2 font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">{getReko(pt)}</td>
+                      <td className="px-2.5 py-2 font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">{toIndonesian(getReko(pt))}</td>
                     </tr>
                   ))}
                 </tbody>
