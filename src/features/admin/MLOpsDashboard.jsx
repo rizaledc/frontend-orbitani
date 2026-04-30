@@ -1,6 +1,7 @@
 import logger from '../../utils/logger';
 import { useState, useEffect } from 'react';
-import { Cpu, ArrowClockwise, CheckCircle, XCircle, WarningCircle, Table, Lightning, Pulse } from '@phosphor-icons/react';
+import { Cpu, CheckCircle, XCircle, Table, Lightning, Pulse } from '@phosphor-icons/react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getFeedbackList, submitFeedback, triggerModelTraining, getLLMStatus } from '../../services/mlOpsService';
 
@@ -9,7 +10,7 @@ const MLOpsDashboard = () => {
   const [llmStatus, setLlmStatus] = useState(null);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(true);
   const [isLoadingLLM, setIsLoadingLLM] = useState(true);
-  const [isTraining, setIsTraining] = useState(false);
+  const [isRetraining, setIsRetraining] = useState(false);
 
   // Feedback form
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
@@ -50,15 +51,39 @@ const MLOpsDashboard = () => {
     }
   };
 
-  const handleTrain = async () => {
-    setIsTraining(true);
+  const handleRetrain = async () => {
+    setIsRetraining(true);
+    const toastId = toast.loading('⚙️ Memproses retraining model, harap tunggu...', { duration: Infinity });
     try {
-      await triggerModelTraining();
-      toast.success('Proses retraining model berhasil dipicu. Proses berjalan di background.');
+      const result = await triggerModelTraining();
+
+      toast.success(
+        `✅ Retraining selesai! · Akurasi: ${(result.accuracy * 100).toFixed(2)}% · F1-Score: ${(result.f1_score * 100).toFixed(2)}%`,
+        { id: toastId, duration: 8000, style: { maxWidth: '480px' } }
+      );
     } catch (err) {
       logger.error(err);
+      const status = err?.response?.status;
+      let errMsg = '❌ Gagal memicu retraining. Silakan coba lagi.';
+
+      if (status === 401) {
+        errMsg = '🔒 Sesi Anda telah berakhir. Silakan login kembali.';
+      } else if (status === 403) {
+        errMsg = '🚫 Akses ditolak. Fitur ini hanya tersedia untuk Admin.';
+      } else if (status === 500) {
+        const detail = err?.response?.data?.detail;
+        errMsg = detail
+          ? `⚠️ Server error: ${detail}`
+          : '⚠️ Terjadi kesalahan pada server saat melatih model.';
+      }
+
+      toast.error(errMsg, {
+        id: toastId,
+        duration: 7000,
+        style: { maxWidth: '480px' },
+      });
     } finally {
-      setIsTraining(false);
+      setIsRetraining(false);
     }
   };
 
@@ -96,12 +121,16 @@ const MLOpsDashboard = () => {
           </div>
         </div>
         <button
-          onClick={handleTrain}
-          disabled={isTraining}
-          className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-primary-hover active:scale-95 transition-all shadow-sm disabled:opacity-50"
+          onClick={handleRetrain}
+          disabled={isRetraining}
+          className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-primary-hover active:scale-95 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <ArrowClockwise size={18} weight="bold" className={isTraining ? 'animate-spin' : ''} />
-          {isTraining ? 'Melatih Model...' : 'Trigger Retraining'}
+          {isRetraining ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <RefreshCw size={16} strokeWidth={2.5} />
+          )}
+          {isRetraining ? 'Memproses Retraining...' : 'Trigger Retraining'}
         </button>
       </div>
 
